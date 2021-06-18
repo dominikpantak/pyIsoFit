@@ -13,4 +13,4 @@ To install the latest development version from the head use
 pip install git+https://github.com/dominikpantak/pyIsofit.git
 ```
 
-Developers can install the extras `[dev]`. 
+Developers can install the extras `[dev]`.

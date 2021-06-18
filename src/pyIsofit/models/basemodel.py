@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
 from abc import ABC
 from typing import Iterable
 
 
 class AbstractBaseModel(ABC):
     """Defining the API for all isotherm models"""
+
     def get_latex(self) -> str:
         ...
 
@@ -17,7 +19,7 @@ class AbstractBaseModel(ABC):
 
     def plot(self, p: Iterable):
         ...
-    
+
     def get_temperature_dependent_parameters(self):
         ...
 
