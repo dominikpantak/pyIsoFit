@@ -6,7 +6,7 @@ from IPython.display import display
 def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tolerance=0.999, henry_only=False):
     #This section finds the henry region of the datasets
     x = []
-    y = []         
+    y = []
     for i in range(len(keyPressures)):
         xi = np.insert(np.array(df[keyPressures[i]].values), 0, 0)
         yi = np.insert(np.array(df[keyUptakes[i]].values), 0, 0)
@@ -28,11 +28,11 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tolerance=0.99
         rsq = 1
         x_ = x[i]
         x_henry = [x_[0], x_[1], x_[2]] #Starting with a minimum of two datapoints
-        counter = 3 
+        counter = 3
         rsq_ilst = []
         hen_ilst = []
         #This loop adds data points while the points correspond to a henry fit with an R^2 of above 0.9995
-        while rsq > 0 and counter < len(x_): 
+        while rsq > 0 and counter < len(x_):
             x_henry.append(x_[counter])
             y_henry = dataset[:len(x_henry)]
 
@@ -41,7 +41,7 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tolerance=0.99
             rsq_ilst.append(rsq)
             hen_ilst.append(hen)
             counter += 1
-        rsq_lst.append(rsq_ilst) 
+        rsq_lst.append(rsq_ilst)
         hen_lst.append(hen_ilst)
         #plt.figure()
 
@@ -83,15 +83,15 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tolerance=0.99
     if errHen != []:
         print(unbold + 'WARNING: Henry region for dataset(s) ' + ', '.join(errHen) + ' were found to be made up of less than 4 points.')
         print('         This may affect accuracy of results.')
-        print('         Henry region tolerance may be entered after log plot toggle parameter (default = 0.9999).')  
+        print('         Henry region tolerance may be entered after log plot toggle parameter (default = 0.9999).')
 
     #Creating dataframe for henry constants
-    df_henry = pd.DataFrame(list(zip(henry_constants, henry_limits, henry_len, henry_rsq)), 
+    df_henry = pd.DataFrame(list(zip(henry_constants, henry_limits, henry_len, henry_rsq)),
                             columns=['Henry constant (mmol/(bar.g))',
                                     'Upper limit (bar)','datapoints', 'R squared'])
     if display_hen == True:
         display(pd.DataFrame(df_henry))
-    
+
     return henry_constants
 
 def get_model(model):
@@ -122,18 +122,18 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "q" : saturation_loading,
             "h" : 5000
         }
-    
+
     if model == "DSL":
         return {
-            "q1": 0.5 * saturation_loading,
-            "b1": 0.4 * langmuir_b,
-            "q2": 0.5 * saturation_loading,
-            "b2": 0.6 * langmuir_b
+            "q1": [0.5 * q for q in saturation_loading] ,
+            "b1": [0.4 * b for b in langmuir_b],
+            "q2": [0.5 * q for q in saturation_loading],
+            "b2": [0.6 * b for b in langmuir_b]
         }
-    
+
     if model == "GAB":
         return {
             "n": saturation_loading,
             "ka": langmuir_b,
             "ca": 0.01 * langmuir_b
-        } 
+        }
