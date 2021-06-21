@@ -197,14 +197,16 @@ class Models:
         else: 
             params = temps, guess, keyPressures, keyUptakes, compname, df, logplot, cond2, meth
 
-        fitDSL = iso.DSL_fit(*params)
-        fitDSL.fit_isotherm(*params)
+
  #params = temps, guess, keyPressures, keyUptakes, compnames, df_list, True, meth, 'extend', 0.85
 #df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
 #df = [df1, df2]
+        fitDSL = iso.DSL_fit(*params)
+        fitDSL.fit_isotherm(*params)
 
 
-# In[ ]:
+
+
 
 
 

@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
-from IPython.display import display
+#from IPython.display import display
 from modelFunctions import *
 from utilityFunctions import *
 
@@ -189,7 +189,6 @@ class IsothermFit:
         plt.show()
 
 df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-hh kl
 compname = 'CO2'
 temps = [10, 40, 100]
 meth = 'tnc'
@@ -203,3 +202,4 @@ tolerance = 0.9999 # set minimum r squared value
 langmuir = IsothermFit(df1, compname, temps, keyPressures, keyUptakes, True, "Langmuir")
 langmuir.fit(True, True)
 langmuir.plot()
+
