@@ -10,7 +10,7 @@ from utilityFunctions import *
 
 
 def dsl_funct(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
-              meth='tnc', guess=None, hentol=0.999):
+              meth='tnc', guess=None, hentol=0.9999):
     # Here is the step procedure mentioned above
     # The outer class controls which step is being carried out
     # The first step is to find the initial q1, q2, b1, b2 values with the henry constraint se
@@ -233,10 +233,10 @@ def dsl_funct(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
         if len(df_list) > 1 and i != i_high:
             print(bold + "_________________________" + compnames[i] + " RESULTS_____________________________")
             print(' ')
-            step2_compB = step2(*df_dict[compnames[i]], meth, guess[i_high], henry_const_lst[i_high], temps,
+            step2_compB = step2(*df_dict[compnames[i]], meth, guess[i], henry_const_lst[i], temps,
                                 step1_compA, True)
 
-            step3(*df_dict[compnames[i_high]], meth, guess[i_high], henry_const_lst[i_high], temps, step2_compB, True)
+            step3(*df_dict[compnames[i_high]], meth, guess[i], henry_const_lst[i], temps, step2_compB, True)
 
 
 

@@ -1569,7 +1569,8 @@ class DSL_fit:
                     # Checking r squared of fits
                     r_sq = [r2(x[i], y[i], dsl_h, c[i]) for i in range(len(keyPressures))]
                     se = [mse(x[i], y[i], dsl_h, c[i]) for i in range(len(keyPressures))]
-                    
+
+                    pd.set_option('display.max_columns', None)
                     #Displaying results
                     df_result = pd.DataFrame(list(zip(t, qmax1, qmax2, h1, h2, b01, b02, r_sq, se)), 
                                     columns=['Temp(K)','qmax1 (mmol/g)',
@@ -1772,8 +1773,26 @@ class DSL_fit:
             return step3_co2 + step3_n2
 
 
-# In[ ]:
+#fit_isotherm(self, temps, guess, keyPressures, keyUptakes, compnames, df_list, logplot=False, tol=0.9999,
+                     #meth='leastsq', fix=None, yA=None)
 
+df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
+df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+
+df_list = [df1, df2]
+
+temps = [10, 40, 100]
+
+compnames = ['CO2', 'N2']  # Temp in C
+meth = 'tnc'  # Optional picking mathematical method for fitting (default is leastsq)
+
+keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
+keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
+
+guess = [1, 1, 1, 1]
+
+test = DSL_fit(temps, guess, keyPressures, keyUptakes, compnames, df_list)
+test.fit_isotherm(temps, guess, keyPressures, keyUptakes, compnames, df_list)
 
 
 
