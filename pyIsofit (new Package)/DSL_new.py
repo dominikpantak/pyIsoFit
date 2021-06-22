@@ -264,21 +264,8 @@ meth = 'tnc'  # Optional picking mathematical method for fitting (default is lea
 keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
 keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 
-guess = [{
-            "q1": [1, 1, 1],
-            "b1": [1, 1, 1],
-            "q2": [1, 1, 1],
-            "b2": [1, 1, 1]
-        },{
-            "q1": [1, 1, 1],
-            "b1": [0.1, 0.1, 0.1],
-            "q2": [1, 1, 1],
-            "b2": [0.1, 0.1, 10]
-        },]
-
-
 # keyUptakes = ['Uptake1', 'Uptake2', 'Uptake3', 'Uptake4']
 # keyPressures = ['Pressure1', 'Pressure2', 'Pressure3', 'Pressure4']
 
-dsl_funct(df_list, keyPressures, keyUptakes, temps, compnames, 'tnc', guess)
+dsl_funct(df_list, keyPressures, keyUptakes, temps, compnames)
 

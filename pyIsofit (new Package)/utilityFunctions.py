@@ -115,14 +115,6 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
 
     return henry_constants
 
-df = pd.read_csv('Computational Data (EPFL) CO2.csv')
-keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
-keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
-
-henry_approx(df, keyPressures, keyUptakes, True, [0.0001, 0.0001, 0.0001], False)
-
-
-
 def get_model(model):
     if model == "Langmuir":
         return langmuir1
