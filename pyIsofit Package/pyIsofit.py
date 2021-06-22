@@ -3,8 +3,9 @@
 
 # In[5]:
 
-
+import pandas as pd
 import Source as iso
+
 
 class Models:
     def __init__(self, df, compname, temps, keyPressures, keyUptakes, guess=None, logplot=False,
@@ -198,13 +199,35 @@ class Models:
             params = temps, guess, keyPressures, keyUptakes, compname, df, logplot, cond2, meth
 
 
- #params = temps, guess, keyPressures, keyUptakes, compnames, df_list, True, meth, 'extend', 0.85
+
+df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
+df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+
+df_list = [df1, df2]
+
+temps = [10, 40, 100]
+# temps = [20, 40, 60, 70]
+# Need to input the dataframe as a list into the class
+# Lists for pressure and uptake keys are also required
+
+compnames = ['CO2', 'N2']  # Temp in C
+meth = 'tnc'  # Optional picking mathematical method for fitting (default is leastsq)
+# initial guess values#
+#       [q1    q2     b1      b2]
+guess = [1, 1, 1, 1]
+# Optional initial guess values for fitting
+
+keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
+keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
+
+
+params = temps, guess, keyPressures, keyUptakes, compnames, df_list, 0.999, True, meth, 'extend', 0.85
 #df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
 #df = [df1, df2]
-        fitDSL = iso.DSL_fit(*params)
-        fitDSL.fit_isotherm(*params)
+fitDSL = iso.DSL_fit(*params)
+fitDSL.fit_isotherm(*params)
 
-
+#fitDSL = iso.DSL_fit()
 
 
 

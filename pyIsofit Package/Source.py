@@ -10,6 +10,7 @@ import numpy as np
 from scipy import stats
 from lmfit import Model
 from lmfit import Parameters
+from IPython.display import display
 
 
 # In[2]:

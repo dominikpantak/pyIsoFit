@@ -83,7 +83,6 @@ def dsl_funct(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
         qmax2 = [param[1] for param in c]
         b1 = [param[2] for param in c]
         b2 = [param[3] for param in c]
-        qtot = [param[0] + param[1] for param in c]
 
         # Finding heat of adsorption for both sites
         T = np.array([1 / (temp + 273) for temp in temps])
@@ -120,7 +119,7 @@ def dsl_funct(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
                 pars = Parameters()
                 pars.add('t', value=tempsK[i], vary=False)
                 pars.add('q', value=qtot, min=qtot, max=qtot + 0.001)
-                pars.add('h', value=-14 * 1000)
+                pars.add('h', value=h_in[0] * 1000)
                 pars.add('b0', value=b0_in[0], min=0)
 
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
