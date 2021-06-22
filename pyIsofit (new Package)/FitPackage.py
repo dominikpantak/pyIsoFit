@@ -8,9 +8,9 @@ from matplotlib import pyplot as plt
 import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
-#from IPython.display import display
 from modelFunctions import *
 from utilityFunctions import *
+from modelProcedures import *
 
 _MODELS = [
     "Langmuir", "Quadratic", "BET", "Henry", "TemkinApprox", "DSLangmuir"
@@ -61,34 +61,36 @@ class IsothermFit:
 
     def fit(self, cond=True, show_hen=False, hen_tol=0.999):
         # Reading data from dataframe with respect to provided keys
-        x2 = []
-        y2 = []
-        #Importing data and allocating to variables
-        for i in range(len(keyPressures)):
-            x2.append(self.df[keyPressures[i]].values)
-            y2.append(self.df[keyUptakes[i]].values)
+        if self.model != "DSL Farmahini":
+            x2 = []
+            y2 = []
+            #Importing data and allocating to variables
+            for i in range(len(keyPressures)):
+                x2.append(self.df[keyPressures[i]].values)
+                y2.append(self.df[keyUptakes[i]].values)
 
-        if self.model == "Langmuir linear 1":
-            for i in range(len(self.keyPressures)):
-                self.x.append([1 / p for p in x2[i]])
-                self.y.append([1 / q for q in y2[i]])
+            if self.model == "Langmuir linear 1":
+                for i in range(len(self.keyPressures)):
+                    self.x.append([1 / p for p in x2[i]])
+                    self.y.append([1 / q for q in y2[i]])
 
-        elif self.model == "Langmuir linear 2":
-            for i in range(len(self.keyPressures)):
-                self.y.append([p / q for (p, q) in zip(x2[i], y2[i])])
-                self.x.append(x2[i])
+            elif self.model == "Langmuir linear 2":
+                for i in range(len(self.keyPressures)):
+                    self.y.append([p / q for (p, q) in zip(x2[i], y2[i])])
+                    self.x.append(x2[i])
 
-        elif self.model == "MDR" or self.model == "MDR TD":
-            for i in range(len(self.keyPressures)):
-                pressure = x2[i]
-                self.x.append(np.array([p / pressure[-1] for p in x2[i]]))
-                self.y.append([i for i in y2])
-                del pressure
+            elif self.model == "MDR" or self.model == "MDR TD":
+                for i in range(len(self.keyPressures)):
+                    pressure = x2[i]
+                    self.x.append(np.array([p / pressure[-1] for p in x2[i]]))
+                    self.y.append([i for i in y2])
+                    del pressure
+            else:
+                self.x = x2
+                self.y = y2
+
+            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol)
         else:
-            self.x = x2
-            self.y = y2
-
-        henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol)
 
         # SINGLE LANGMUIR FITTING
         if "Langmuir" in self.model and self.model != "Langmuir TD":
@@ -162,7 +164,9 @@ class IsothermFit:
             print("List for intial guess values to feed into the temperature dependent Langmuir model:")
             print([q_[0], b_[0], h, b0])
 
-        #if self.model == "DSL":
+        if self.model == "DSL":
+            dsl_result = dsl_fit(df_lst, keyPressures, keyUptakes, temps, compnames, meth, guess, hentol)
+            df_dict, results_dict = dsl_result
 
 
     def plot(self):
