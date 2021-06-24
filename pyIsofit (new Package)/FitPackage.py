@@ -36,12 +36,12 @@ class IsothermFit:
         self.df = df                 #Dataframe with uptake vs. pressure data
         self.temps = temps           #Temp in deg C
         self.meth = meth             #Optional to choose mathematical fitting method in lmfit (default is leastsq)
-        self.name = compname             #Name of component
+        self.compname = compname             #Name of component
 
         self.keyPressures = keyPressures #names of the column headers for pressure and uptakes
         self.keyUptakes = keyUptakes    #
         self.model = model
-        if model == None:
+        if model is None:
             raise Exception("Enter a model as a parameter")
         self.logplot = logplot
 
@@ -50,7 +50,11 @@ class IsothermFit:
         self.params = params if y is not None else []
 
         # ! Dictionary of parameters as a starting point for data fitting
-        self.guess = get_guess_params(model, df, keyUptakes, keyPressures)
+        if type(self.df) is not list:
+            self.guess = get_guess_params(model, df, keyUptakes, keyPressures)
+        else:
+            self.guess = None
+
         # Override defaults if user provides param_guess dictionary
         if guess is not None:
             for param, guess_val in guess.items():
@@ -61,7 +65,7 @@ class IsothermFit:
 
     def fit(self, cond=True, show_hen=False, hen_tol=0.999):
         # Reading data from dataframe with respect to provided keys
-        if self.model != "DSL Farmahini":
+        if self.model != "DSL":
             x2 = []
             y2 = []
             #Importing data and allocating to variables
@@ -89,14 +93,13 @@ class IsothermFit:
                 self.x = x2
                 self.y = y2
 
-            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol)
-        else:
+            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol, self.compname)
 
         # SINGLE LANGMUIR FITTING
         if "Langmuir" in self.model and self.model != "Langmuir TD":
             isotherm = get_model(self.model)
             gmod = Model(isotherm, nan_policy="omit")
-            if cond == True:
+            if cond:
                 print("Constraint 1: q sat = q_init for all temp")
                 print("Constraint 2: qsat*b = Henry constant for all temp")
             c = []
@@ -109,7 +112,7 @@ class IsothermFit:
 
                 #Creating intermediate parameter delta that will fix KH = b*q
 
-                if cond == True:
+                if cond:
                     if i == 0:
                         pars.add('q', value=q_guess[0], min=0)
                     else:
@@ -165,35 +168,59 @@ class IsothermFit:
             print([q_[0], b_[0], h, b0])
 
         if self.model == "DSL":
-            dsl_result = dsl_fit(df_lst, keyPressures, keyUptakes, temps, compnames, meth, guess, hentol)
+            dsl_result = dsl_fit(self.df, self.keyPressures, self.keyUptakes,
+                                 self.temps, self.compname, self.meth, self.guess, hen_tol)
             df_dict, results_dict = dsl_result
 
+        if type(self.df) is list:
+            self.params = results_dict
+            for i in range(len(compname)):
+                x_i, y_i = df_dict[compname[i]]
+                self.x.append(x_i)
+                self.y.append(y_i)
 
     def plot(self):
-        p=np.linspace(0, 10, 301)
+        np.linspace(0, 10, 301)
 
         ##### Plotting results #####
-        plt.figure(figsize=(8, 6))
-        #plt.title()
-        if self.logplot == True:
-            plt.xscale("log")
-            plt.yscale("log")
-        plt.xlabel('xaxis')
-        plt.ylabel('yaxis')
-        plt.tick_params(**tick_style)
 
-        for i in range(len(self.keyPressures)):
-            plt.plot(self.x[i], self.params[i].best_fit, '-', color = colours[i],
-                     label="{temps} °C Fit".format(temps=self.temps[i]))
-            plt.plot(self.x[i], self.y[i], 'ko', color = '0.75',
-                     label="Data at {temps} °C".format(temps=self.temps[i]))
+        #plt.title()
+
+
+        if type(self.df) is list:
+            for i in range(len(self.df)):
+                plt.figure(figsize=(8, 6))
+
+                if self.logplot:
+                    plt.xscale("log")
+                    plt.yscale("log")
+                plt.xlabel('xaxis')
+                plt.ylabel('yaxis')
+                plt.tick_params(**tick_style)
+
+                comp_x_params = self.params[compname[i]]
+                plt.title(compname[i])
+                for j in range(len(self.keyPressures)):
+                    plt.plot(self.x[i][j], comp_x_params[j].best_fit, '-', color=colours[j],
+                             label="{temps} °C Fit".format(temps=self.temps[j]))
+                    plt.plot(self.x[i][j], self.y[i][j], 'ko', color='0.75',
+                             label="Data at {temps} °C".format(temps=self.temps[j]))
+        else:
+            plt.figure(figsize=(8, 6))
+            for i in range(len(self.keyPressures)):
+                plt.plot(self.x[i], self.params[i].best_fit, '-', color = colours[i],
+                         label="{temps} °C Fit".format(temps=self.temps[i]))
+                plt.plot(self.x[i], self.y[i], 'ko', color = '0.75',
+                         label="Data at {temps} °C".format(temps=self.temps[i]))
 
         plt.grid()
         plt.legend()
         plt.show()
 
 df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-compname = 'CO2'
+df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+df_list = [df1, df2]
+compname = ['CO2', 'N2']
 temps = [10, 40, 100]
 meth = 'tnc'
 keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
@@ -203,7 +230,7 @@ keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 #keyUptakes = ['Uptake1', 'Uptake2', 'Uptake3']
 tolerance = 0.9999 # set minimum r squared value
 
-langmuir = IsothermFit(df1, compname, temps, keyPressures, keyUptakes, True, "Langmuir")
+langmuir = IsothermFit(df_list, compname, temps, keyPressures, keyUptakes, True, "DSL")
 langmuir.fit(True, True)
 langmuir.plot()
 

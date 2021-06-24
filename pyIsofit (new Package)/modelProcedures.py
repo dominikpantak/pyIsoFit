@@ -9,8 +9,8 @@ from modelFunctions import *
 from utilityFunctions import *
 
 
-def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
-              meth='tnc', guess=None, hentol=0.9999):
+def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
+            meth='tnc', guess=None, hentol=0.9999, show_hen=False):
     # Here is the step procedure mentioned above
     # The outer class controls which step is being carried out
     # The first step is to find the initial q1, q2, b1, b2 values with the henry constraint se
@@ -66,13 +66,13 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
                 pars = Parameters()
                 pars.add('q1', value=q1fix, min=q1fix, max=q1fix + 0.001)
                 pars.add('q2', value=q2fix, min=q2fix, max=q2fix + 0.001)
-                pars.add('b2', value=guess['b2'][0], min=0)
+                pars.add('b2', value=guess['b2'][i], min=0)
                 pars.add('delta', value=henry_constants[i], vary=False)
                 pars.add('b1', expr='(delta-q2*b2)/q1', min=0)  # KH = b*q
 
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
                 c = [results.values['q1'], results.values['q2'],
-                       results.values['b1'], results.values['b2']]
+                     results.values['b1'], results.values['b2']]
                 c_list.append(c)
 
                 del results
@@ -126,7 +126,7 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
                 results_lst.append(results)
 
                 c_list.append([results.values['t'], q1_in, q2_in, results.values['h'],
-                          results.values['h'], results.values['b0'], results.values['b0']])
+                               results.values['h'], results.values['b0'], results.values['b0']])
 
                 del results
                 del pars
@@ -148,24 +148,24 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
                 results_lst.append(results)
                 c_list.append([results.values['t'], results.values['q1'], results.values['q2'], results.values['h1'],
-                          results.values['h2'], results.values['b01'], results.values['b02']])
+                               results.values['h2'], results.values['b01'], results.values['b02']])
 
                 del results
                 del pars
 
-        print(bold + "\nParameters found...")
+        print(bold + "\nParameters found..." + unbold)
 
         # allocating variables, formatting and creating dataframe
 
         t = [param[0] for param in c_list]
 
         # UNFORMATTED VARIABLES
-        q1 = [param[1] for param in c_list]
-        q2 = [param[2] for param in c_list]
-        h_1 = [param[3] for param in c_list]
-        h_2 = [param[4] for param in c_list]
-        b_01 = [param[5] for param in c_list]
-        b_02 = [param[6] for param in c_list]
+        # q1 = [param[1] for param in c_list]
+        # q2 = [param[2] for param in c_list]
+        # h_1 = [param[3] for param in c_list]
+        # h_2 = [param[4] for param in c_list]
+        # b_01 = [param[5] for param in c_list]
+        # b_02 = [param[6] for param in c_list]
 
         # FORMATTED VARIABLES
         qmax1 = [np.round(param[1], 3) for param in c_list]
@@ -196,7 +196,7 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
     df_dict = {}
     results_dict = {}
     i = 0
-    for df in df_lst:
+    for df in df_list:
         x = [df[keyPressures[j]].values for j in range(len(keyPressures))]
         y = [df[keyUptakes[j]].values for j in range(len(keyPressures))]
         df_dict[compnames[i]] = x, y
@@ -208,7 +208,7 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
     qhigh = 0
     if guess is None:
         guess = [get_guess_params("DSL", df_list[i], keyUptakes, keyPressures) for i in range(len(df_list))]
-    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, True, hentol, True) for i in range(len(df_list))]
+    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, True, hentol, compnames[i]) for i in range(len(df_list))]
 
     for i in range(len(compnames)):
         qtest = step1(*df_dict[compnames[i]], meth, guess[i], henry_const_lst[i])
@@ -217,7 +217,7 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
             qhigh += qcheck
             i_high += i
 
-    print(compnames[i_high] + " shows the highest approx. qsat(total) of " + str(round(qhigh,1)) + " mmol/g")
+    print(compnames[i_high] + " shows the highest approx. qsat(total) of " + str(round(qhigh, 1)) + " mmol/g")
     print("This will be used as component A")
 
     # Allocates the most adsorbed dataframe to be used in the procedure
@@ -232,7 +232,6 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
     step3_compA = step3(*df_dict[compnames[i_high]], meth, guess[i_high], henry_const_lst[i_high], temps, step2_compA)
     results_dict[compnames[i_high]] = step3_compA
 
-
     for i in range(len(df_list)):
         if len(df_list) > 1 and i != i_high:
             print(bold + "_________________________" + compnames[i] + " RESULTS_____________________________")
@@ -240,6 +239,18 @@ def dsl_fit(df_lst, keyPressures, keyUptakes, temps=None, compnames=None,
             step2_compB = step2(*df_dict[compnames[i]], meth, guess[i], henry_const_lst[i], temps,
                                 step1_compA, True)
 
-            step3_compB = step3(*df_dict[compnames[i], meth, guess[i], henry_const_lst[i], temps, step2_compB, True)
+            step3_compB = step3(*df_dict[compnames[i]], meth, guess[i], henry_const_lst[i], temps, step2_compB, True)
             results_dict[compnames[i]] = step3_compB
+
     return df_dict, results_dict
+
+# df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
+# df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+# df_list = [df1, df2]
+# compname = ['CO2', 'N2']
+# temps = [10, 40, 100]
+# meth = 'tnc'
+# keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
+# keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
+#
+# dsl_fit(df_list, keyPressures, keyUptakes, temps, compname, meth)
