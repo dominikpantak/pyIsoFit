@@ -1,10 +1,11 @@
 import numpy as np
-from modelFunctions import *
+from modelEquations import *
 import pandas as pd
 from IPython.display import display
+from matplotlib import pyplot as plt
 
 
-def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customhen=0.9999, compname = "---"):
+def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customhen=0.9999, compname="---"):
     # This section finds the henry region of the datasets
     x = []
     y = []
@@ -102,13 +103,13 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
             print(unbold + 'WARNING: Henry region for dataset(s) ' + ', '.join(
                 errHen) + ' were found to be made up of less than 4 points.')
             print('         This may affect accuracy of results.')
-            print('         Henry region tolerance may be entered after log plot toggle parameter (default = 0.9999).\n')
+            print(
+                '         Henry region tolerance may be entered after log plot toggle parameter (default = 0.9999).\n')
 
         # Creating dataframe for henry constants
         df_henry = pd.DataFrame(list(zip(henry_constants, henry_limits, henry_len, henry_rsq)),
                                 columns=['Henry constant (mmol/(bar.g))',
                                          'Upper limit (bar)', 'datapoints', 'R squared'])
-
 
         display(pd.DataFrame(df_henry))
 
@@ -122,13 +123,18 @@ def get_model(model):
         return langmuirlin1
     if model == "Langmuir linear 2":
         return langmuirlin2
+    if model == "Langmuir TD":
+        return langmuirTD
+    if model == "MDR":
+        return mdr
 
 
-def get_guess_params(model, df, key_uptakes, key_pressures):
+def get_guess_params(model, df, keyUptakes, keyPressures):
     if model != "BDDT 2n" or model != "BDDT 2n-1" or model != "DoDo":
-        henry_lim = henry_approx(df, key_pressures, key_uptakes, False)
-        saturation_loading = [1.1 * df[key_uptakes[i]].max() for i in range(len(key_pressures))]
+        henry_lim = henry_approx(df, keyPressures, keyUptakes, False)
+        saturation_loading = [1.1 * df[keyUptakes[i]].max() for i in range(len(keyPressures))]
         langmuir_b = [kh / qsat for (kh, qsat) in zip(henry_lim, saturation_loading)]
+        h_guess = [-5 for i in range(len(keyPressures))]
 
     if "Langmuir" in model and model != "Langmuir TD":
         return {
@@ -140,7 +146,7 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
         return {
             "b0": langmuir_b,
             "q": saturation_loading,
-            "h": 5000
+            "h": h_guess
         }
 
     if model == "DSL":
@@ -157,3 +163,56 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "ka": langmuir_b,
             "ca": 0.01 * langmuir_b
         }
+
+    if model == "MDR":
+        return {
+            "n0": saturation_loading,
+            "n1": langmuir_b,
+            "a": [0.01 * b for b in langmuir_b],
+            "c": langmuir_b
+        }
+
+
+def plot_settings(log, xtitle, ytitle):
+    tick_style = {'direction': 'in',
+                  'length': 4,
+                  'width': 0.7,
+                  'colors': 'black'}
+
+    plt.figure(figsize=(8, 6))
+    if log:
+        plt.xscale("log")
+        plt.yscale("log")
+    plt.xlabel(xtitle)
+    plt.ylabel(ytitle)
+    plt.tick_params(**tick_style)
+    plt.grid()
+
+
+_model_params = {
+    'Langmuir': {
+        'q': np.nan,
+        'b': np.nan
+    },
+    'Langmuir TD': {
+        'q': np.nan,
+        'b0': np.nan,
+        'h': np.nan
+    },
+    'DSL': {
+        'q1': np.nan,
+        'q2': np.nan,
+        'b1': np.nan,
+        'b2': np.nan
+    },
+    'MDR': {
+        'n0': np.nan,
+        'n1': np.nan,
+        'a': np.nan,
+        'c': np.nan
+    }
+}
+
+_model_param_lists = {
+    'MDR': ['n0', 'n1', 'a', 'c']
+}

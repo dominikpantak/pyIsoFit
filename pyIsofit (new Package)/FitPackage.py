@@ -1,15 +1,16 @@
-#import FitPackage as mc
-#import importlib
+# import FitPackage as mc
+# import importlib
 
-#importlib.reload(mc)
+# importlib.reload(mc)
 
 import pandas as pd
 from matplotlib import pyplot as plt
 import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
-from modelFunctions import *
+from modelEquations import *
 from utilityFunctions import *
+from utilityFunctions import _model_params, _model_param_lists
 from modelProcedures import *
 
 _MODELS = [
@@ -18,29 +19,41 @@ _MODELS = [
 
 colours = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive']
 
+
+def get_fit_tuples(model, guess):
+    if model == "MDR":
+        return ('n0', guess['n0'], True, 0), \
+               ('n1', guess['n1'], True, 0), \
+               ('a', guess['a'], True, 0), \
+               ('c', guess['c'], True, 0)
+
+
 class IsothermFit:
     def __init__(self,
-                df,
-                compname,
-                temps,
-                keyPressures,
-                keyUptakes,
-                logplot=False,
-                model=None,
-                guess=None,
-                meth='tnc',
-                x=None,
-                y=None,
-                params=None):
+                 df,
+                 compname,
+                 temps,
+                 keyPressures,
+                 keyUptakes,
+                 logplot=False,
+                 model=None,
+                 guess=None,
+                 meth='tnc',
+                 x=None,
+                 y=None,
+                 params=None):
 
-        self.df = df                 #Dataframe with uptake vs. pressure data
-        self.temps = temps           #Temp in deg C
-        self.meth = meth             #Optional to choose mathematical fitting method in lmfit (default is leastsq)
-        self.compname = compname             #Name of component
+        self.df = df  # Dataframe with uptake vs. pressure data
+        self.temps = temps  # Temp in deg C
+        self.meth = meth  # Optional to choose mathematical fitting method in lmfit (default is leastsq)
+        self.compname = compname  # Name of component
 
-        self.keyPressures = keyPressures #names of the column headers for pressure and uptakes
-        self.keyUptakes = keyUptakes    #
+        self.keyPressures = keyPressures  # names of the column headers for pressure and uptakes
+        self.keyUptakes = keyUptakes  #
         self.model = model
+        if type(self.df) is list and model != "DSL":
+            raise Exception("\n\n\n\nEnter one dataframe, not a list of dataframes")
+
         if model is None:
             raise Exception("Enter a model as a parameter")
         self.logplot = logplot
@@ -68,7 +81,7 @@ class IsothermFit:
         if self.model != "DSL":
             x2 = []
             y2 = []
-            #Importing data and allocating to variables
+            # Importing data and allocating to variables
             for i in range(len(keyPressures)):
                 x2.append(self.df[keyPressures[i]].values)
                 y2.append(self.df[keyUptakes[i]].values)
@@ -93,84 +106,56 @@ class IsothermFit:
                 self.x = x2
                 self.y = y2
 
-            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol, self.compname)
+            base_params = self.model, self.x, self.y, self.guess, self.temps
+
+            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol,
+                                           self.compname)
 
         # SINGLE LANGMUIR FITTING
         if "Langmuir" in self.model and self.model != "Langmuir TD":
-            isotherm = get_model(self.model)
-            gmod = Model(isotherm, nan_policy="omit")
-            if cond:
-                print("Constraint 1: q sat = q_init for all temp")
-                print("Constraint 2: qsat*b = Henry constant for all temp")
-            c = []
+            self.params = langmuir_fit(*base_params, cond, henry_constants, self.meth)
 
-            q_guess = self.guess['q']
-            b_guess = self.guess['b']
+        elif self.model == "Langmuir TD":
+            self.params = langmuirTD_fit(*base_params, cond, self.meth)
 
-            for i in range(len(self.keyPressures)):
-                pars = Parameters()
+        elif self.model == "GAB":
+            self.params = gab_fit(*base_params, meth)
 
-                #Creating intermediate parameter delta that will fix KH = b*q
-
-                if cond:
-                    if i == 0:
-                        pars.add('q', value=q_guess[0], min=0)
-                    else:
-                        pars.add('q', value=q_fix, min=q_fix, max=q_fix+0.001)
-
-                    pars.add('delta', value=henry_constants[i], vary=False)
-                    pars.add('b', expr='delta/q') #KH = b*q
-                else:
-                    pars.add('q', value=q_guess[i], min=0)
-                    pars.add('b', value=b_guess[i], min=0)
-
-                results = gmod.fit(self.y[i], pars, x=self.x[i], method=self.meth)
-                cee = [results.values['q'], results.values['b']]
-                self.params.append(results)
-                c.append(cee)
-                if i == 0 and cond == True:
-                    q_fix = results.values['q']  #This only gets applied if cond=True
-
-                del results, pars
-            #allocating variables and creating dataframe
-            #UNFORMATTED VARIABLES
-            q_ = [param[0] for param in c]
-            b_ = [param[1] for param in c]
-
-            #FORMATTED VARIABLES
-            qmax = [np.round(param[0], 3) for param in c]
-            b = ["{:.3e}".format(param[1]) for param in c]
-
-            # Checking r squared of fits
-            r_sq = [r2(self.x[i], self.y[i], isotherm, c[i]) for i in range(len(self.keyPressures))]
-            se = [mse(self.x[i], self.y[i], isotherm, c[i]) for i in range(len(self.keyPressures))]
-
-
-            df_result = pd.DataFrame(list(zip(self.temps, qmax, b, r_sq, se)), columns=['Temperature (oC)','Qmax (mmol/g)',
-                                                                                  'b (1/bar)', 'R squared', 'MSE'])
-            #displaying dataframe
-            display(pd.DataFrame(df_result))
-
-            #calculating heat of adsorption
-            T = np.array([1/(temp+273) for temp in self.temps])
-            ln_b = np.array([np.log(i) for i in b_])
-            mH, bH, rH, pH, sterrH = stats.linregress(T,ln_b)
-            h = -0.001*mH*r
-
-            print("_______________________________________________________________________")
-            print("Heat of adsorption: " + str(round(h,2)) + " kJ/mol. \n" +
-                  "R sq of Van't Hoff: " + str(round(rH, 4)))
-
-            #b0 is also calculated and displayed to the user.
-            #This can be then fed back into the class with delta H to fit to the van't Hoff form of langmuir
-            b0 = np.exp(bH)
-            print("List for intial guess values to feed into the temperature dependent Langmuir model:")
-            print([q_[0], b_[0], h, b0])
-
-        if self.model == "DSL":
+        elif self.model == "DSL":
             dsl_result = dsl_fit(self.df, self.keyPressures, self.keyUptakes,
                                  self.temps, self.compname, self.meth, self.guess, hen_tol)
             df_dict, results_dict = dsl_result
+        else:
+            isotherm = get_model(self.model)
+            gmod = Model(isotherm, nan_policy="omit")
+
+            model_params = get_fit_tuples(self.model, self.guess)
+
+            params = []
+            values_dict = {}
+            for i in range(len(self.x)):
+                pars = Parameters()
+                pars.add_many(*model_params)
+                results = gmod.fit(self.y[i], pars, x=self.x[i], method=meth)
+                params.append(results)
+                values_dict[i] = results.values
+                del results, pars
+
+            values_dict_sorted = {}
+            param_keys = _model_param_lists(self.model)
+            params_list = [[] for i in range(len(param_keys))]
+            for i in range(len(values_dict)):
+                for j in range(len(param_keys)):
+                    params_list[j].append(values_dict[i][param_keys[j]])
+
+
+
+
+
+
+
+
+
 
         if type(self.df) is list:
             self.params = results_dict
@@ -184,19 +169,11 @@ class IsothermFit:
 
         ##### Plotting results #####
 
-        #plt.title()
-
+        # plt.title()
 
         if type(self.df) is list:
             for i in range(len(self.df)):
-                plt.figure(figsize=(8, 6))
-
-                if self.logplot:
-                    plt.xscale("log")
-                    plt.yscale("log")
-                plt.xlabel('xaxis')
-                plt.ylabel('yaxis')
-                plt.tick_params(**tick_style)
+                plot_settings(self.logplot, 'xaxis', 'yaxis')
 
                 comp_x_params = self.params[compname[i]]
                 plt.title(compname[i])
@@ -205,32 +182,32 @@ class IsothermFit:
                              label="{temps} °C Fit".format(temps=self.temps[j]))
                     plt.plot(self.x[i][j], self.y[i][j], 'ko', color='0.75',
                              label="Data at {temps} °C".format(temps=self.temps[j]))
+                plt.legend()
         else:
-            plt.figure(figsize=(8, 6))
+            plot_settings(self.logplot, 'xaxis', 'yaxis')
+
             for i in range(len(self.keyPressures)):
-                plt.plot(self.x[i], self.params[i].best_fit, '-', color = colours[i],
+                plt.plot(self.x[i], self.params[i].best_fit, '-', color=colours[i],
                          label="{temps} °C Fit".format(temps=self.temps[i]))
-                plt.plot(self.x[i], self.y[i], 'ko', color = '0.75',
+                plt.plot(self.x[i], self.y[i], 'ko', color='0.75',
                          label="Data at {temps} °C".format(temps=self.temps[i]))
 
-        plt.grid()
-        plt.legend()
         plt.show()
 
+
 df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
-df_list = [df1, df2]
-compname = ['CO2', 'N2']
+# df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+# df_list = [df1, df2]
+compname = 'CO2'
 temps = [10, 40, 100]
 meth = 'tnc'
 keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
 keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 
-#keyPressures = ['Pressure1', 'Pressure2', 'Pressure3']
-#keyUptakes = ['Uptake1', 'Uptake2', 'Uptake3']
-tolerance = 0.9999 # set minimum r squared value
+# keyPressures = ['Pressure1', 'Pressure2', 'Pressure3']
+# keyUptakes = ['Uptake1', 'Uptake2', 'Uptake3']
+tolerance = 0.9999  # set minimum r squared value
 
-langmuir = IsothermFit(df_list, compname, temps, keyPressures, keyUptakes, True, "DSL")
-langmuir.fit(True, True)
+langmuir = IsothermFit(df1, compname, temps, keyPressures, keyUptakes, True, "MDR")
+langmuir.fit(False, True)
 langmuir.plot()
-
