@@ -191,9 +191,10 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
         print(bold + "===============================================================================")
         print(bold + "===============================================================================")
 
-        return results_lst
+        return results_lst, df_result
 
     df_dict = {}
+    df_res_dict = {}
     results_dict = {}
     i = 0
     for df in df_list:
@@ -208,7 +209,7 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     qhigh = 0
     if guess is None:
         guess = [get_guess_params("DSL", df_list[i], keyUptakes, keyPressures) for i in range(len(df_list))]
-    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, True, hentol, compnames[i]) for i in
+    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, True, hentol, compnames[i])[0] for i in
                        range(len(df_list))]
 
     for i in range(len(compnames)):
@@ -231,7 +232,8 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     step2_compA = step2(*df_dict[compnames[i_high]], meth, guess[i_high], henry_const_lst[i_high], temps, step1_compA)
 
     step3_compA = step3(*df_dict[compnames[i_high]], meth, guess[i_high], henry_const_lst[i_high], temps, step2_compA)
-    results_dict[compnames[i_high]] = step3_compA
+    results_dict[compnames[i_high]] = step3_compA[0]
+    df_res_dict[compnames[i_high]] = step3_compA[1]
 
     for i in range(len(df_list)):
         if len(df_list) > 1 and i != i_high:
@@ -241,9 +243,10 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
                                 step1_compA, True)
 
             step3_compB = step3(*df_dict[compnames[i]], meth, guess[i], henry_const_lst[i], temps, step2_compB, True)
-            results_dict[compnames[i]] = step3_compB
+            results_dict[compnames[i]] = step3_compB[0]
+            df_res_dict[compnames[i]] = step3_compB[1]
 
-    return df_dict, results_dict
+    return df_dict, results_dict, df_res_dict
 
 
 def langmuir_fit(model, x, y, guess, temps, cond, henry_constants, meth):
@@ -279,7 +282,7 @@ def langmuir_fit(model, x, y, guess, temps, cond, henry_constants, meth):
         c = [results.values['q'], results.values['b']]
         params.append(results)
         c_list.append(c)
-        if i == 0 and cond == True:
+        if i == 0 and cond is True:
             q_fix = results.values['q']  # This only gets applied if cond=True
 
         del results, pars
@@ -318,7 +321,7 @@ def langmuir_fit(model, x, y, guess, temps, cond, henry_constants, meth):
     print("List for intial guess values to feed into the temperature dependent Langmuir model:")
     print([q_[0], b_[0], h, b0])
 
-    return params
+    return params, df_result
 
 def langmuirTD_fit(model, x, y, guess, temps, cond, meth):
     isotherm = get_model(model)
@@ -371,7 +374,7 @@ def langmuirTD_fit(model, x, y, guess, temps, cond, meth):
                                                                                 'b0 (1/bar)', 'H (J/mol)', 'R squared', 'MSE'])
     display(pd.DataFrame(df_result))
 
-    return params
+    return params, df_result
 
 def gab_fit(model, x, y, guess, temps, meth):
     n_i = guess['n']
@@ -385,9 +388,9 @@ def gab_fit(model, x, y, guess, temps, meth):
     params = []
     for i in range(len(x)):
         pars = Parameters()
-        pars.add('n', value=n_i, min=0)
-        pars.add('ka', value=ka_i, min=0)
-        pars.add('ca', value=ca_i, min=0)
+        pars.add('n', value=n_i[i], min=0)
+        pars.add('ka', value=ka_i[i], min=0)
+        pars.add('ca', value=ca_i[i], min=0)
 
         results = gmod.fit(y[i], pars, x=x[i], method=meth)
         c = [results.values['n'], results.values['ka'], results.values['ca']]
@@ -451,6 +454,65 @@ def gab_fit(model, x, y, guess, temps, meth):
 
     display(pd.DataFrame(df_result))
 
-    return params
+    return params, df_result
+
+def dsl_fit_nc(model, x, y, guess, temps, meth):
+    q1_i = guess['q1']
+    q2_i = guess['q2']
+    b1_i = guess['b1']
+    b2_i = guess['b2']
+
+    isotherm = get_model(model)
+    gmod = Model(isotherm, nan_policy="omit")
+
+    c_list = []
+    params = []
+    for i in range(len(x)):
+        pars = Parameters()
+        pars.add('q1', value=q1_i[i], min=0)
+        pars.add('q2', value=q2_i[i], min=0)
+        pars.add('b1', value=b1_i[i], min=0)
+        pars.add('b2', value=b2_i[i], min=0)
+
+        results = gmod.fit(y[i], pars, x=x[i], method=meth)
+        c = [results.values['q1'], results.values['q2'], results.values['b1'], results.values['b2']]
+
+        params.append(results)
+        c_list.append(c)
+        del results, pars
+
+    q1 = [param[0] for param in c_list]
+    q2 = [param[1] for param in c_list]
+    b1 = [param[2] for param in c_list]
+    b2 = [param[3] for param in c_list]
+
+    # Finding heat of adsorption for both sites
+    T = np.array([1 / (temp + 273) for temp in temps])
+    ln_b1 = np.array([np.log(i) for i in b1])
+    ln_b2 = np.array([np.log(i) for i in b2])
+    mH1, bH1, rH1, pH1, sterrH1 = stats.linregress(T, ln_b1)
+    mH2, bH2, rH2, pH2, sterrH2 = stats.linregress(T, ln_b2)
+
+    h = [-0.001 * mH1 * r, -0.001 * mH2 * r]
+
+    print("Heat of adsorption for site A: " + str(round(h[0], 2)) + " kJ/mol. \n" +
+          "R sq of Van't Hoff: " + str(round(rH1, 4)))
+
+    print("Heat of adsorption for site A: " + str(round(h[1], 2)) + " kJ/mol. \n" +
+          "R sq of Van't Hoff: " + str(round(rH2, 4)))
+
+
+    r_sq = [r2(x[i], y[i], isotherm, c_list[i]) for i in range(len(x))]
+    se = [mse(x[i], y[i], isotherm, c_list[i]) for i in range(len(x))]
+
+    pd.set_option('display.max_columns', None)
+    # Displaying results as dataframe
+    df_result = pd.DataFrame(list(zip(temps, q1, q2, b1, b2, r_sq, se)), columns=['Temperature (oC)', 'q1 (mmol/g)','q2 (mmol/g)',
+                                                                               'b1 (1/bar)', 'b2 (1/bar)', 'R squared',
+                                                                               'MSE'])
+    display(pd.DataFrame(df_result))
+
+    return params, df_result
+
 
 
