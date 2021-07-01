@@ -10,7 +10,7 @@ from scipy import stats
 from lmfit import Model, Parameters
 from modelEquations import *
 from utilityFunctions import *
-# from utilityFunctions import _model_params, _model_param_lists
+from utilityFunctions import _model_param_lists, _model_df_titles, _temp_dep_models
 from modelProcedures import *
 import math
 
@@ -19,19 +19,6 @@ _MODELS = [
 ]
 
 colours = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive']
-
-
-def get_fit_tuples(model, guess):
-    if model.lower() == "langmuir":
-        return ('q', guess['q'], True, 0), \
-               ('b', guess['b'], True, 0),
-
-    if model == "MDR":
-        return ('n0', guess['n0'], True, 0), \
-               ('n1', guess['n1'], True, 0), \
-               ('a', guess['a'], True, 0), \
-               ('c', guess['c'], True, 0)
-
 
 class IsothermFit:
     def __init__(self,
@@ -46,7 +33,8 @@ class IsothermFit:
                  x=None,
                  y=None,
                  params=None,
-                 df_result=None):
+                 df_result=None,
+                 guess_check=None):
 
         self.df = df  # Dataframe with uptake vs. pressure data
         self.temps = temps  # Temp in deg C
@@ -68,10 +56,8 @@ class IsothermFit:
         self.df_result = df_result if df_result is not None else []
 
         # ! Dictionary of parameters as a starting point for data fitting
-        if type(self.df) is not list:
-            self.guess = get_guess_params(model, df, keyUptakes, keyPressures)
-        else:
-            self.guess = None
+        self.guess = get_guess_params(model, df, keyUptakes, keyPressures)
+        self.guess_check = self.guess
 
         # Override defaults if user provides param_guess dictionary
         if guess is not None:
@@ -83,95 +69,136 @@ class IsothermFit:
 
     def fit(self, cond=True, show_hen=False, hen_tol=0.999):
         # Reading data from dataframe with respect to provided keys
-        if self.model != "DSL":
-            x2 = []
-            y2 = []
-            # Importing data and allocating to variables
+        x2 = []
+        y2 = []
+        # Importing data and allocating to variables
+        for i in range(len(self.keyPressures)):
+            x2.append(self.df[self.keyPressures[i]].values)
+            y2.append(self.df[self.keyUptakes[i]].values)
+
+        if self.model.lower() == "langmuir linear 1":
             for i in range(len(self.keyPressures)):
-                x2.append(self.df[self.keyPressures[i]].values)
-                y2.append(self.df[self.keyUptakes[i]].values)
+                self.x.append([1 / p for p in x2[i]])
+                self.y.append([1 / q for q in y2[i]])
 
-            if self.model.lower() == "langmuir linear 1":
-                for i in range(len(self.keyPressures)):
-                    self.x.append([1 / p for p in x2[i]])
-                    self.y.append([1 / q for q in y2[i]])
+        elif self.model.lower() == "langmuir linear 2":
+            for i in range(len(self.keyPressures)):
+                self.y.append([p / q for (p, q) in zip(x2[i], y2[i])])
+                self.x.append(x2[i])
 
-            elif self.model.lower() == "langmuir linear 2":
-                for i in range(len(self.keyPressures)):
-                    self.y.append([p / q for (p, q) in zip(x2[i], y2[i])])
-                    self.x.append(x2[i])
+        elif self.model.lower() == "mdr" or self.model.lower() == "mdr td":
+            for i in range(len(self.keyPressures)):
+                pressure = x2[i]
+                self.x.append([p / pressure[-1] for p in x2[i]])
+                self.y.append([i for i in y2])
+                del pressure
+        else:
+            self.x = x2
+            self.y = y2
+            # self.x = [[x for x in x2[i] if not math.isnan(x)] for i in range(len(x2))]
+            # self.y = [[y for y in y2[i] if not math.isnan(y)] for i in range(len(y2))]
 
-            elif self.model.lower() == "mdr" or self.model.lower() == "mdr td":
-                for i in range(len(self.keyPressures)):
-                    pressure = x2[i]
-                    self.x.append([p / pressure[-1] for p in x2[i]])
-                    self.y.append([i for i in y2])
-                    del pressure
-            else:
-                self.x = x2
-                self.y = y2
-                # self.x = [[x for x in x2[i] if not math.isnan(x)] for i in range(len(x2))]
-                # self.y = [[y for y in y2[i] if not math.isnan(y)] for i in range(len(y2))]
+        base_params = self.model, self.x, self.y, self.guess
 
-            base_params = self.model, self.x, self.y, self.guess, self.temps
-
-            henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol,
-                                           self.compname)
+        henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol,
+                                       self.compname)
 
         # SINGLE LANGMUIR FITTING
+        isotherm = get_model(self.model)
+        gmod = Model(isotherm, nan_policy="omit")
+
         if "langmuir" in self.model.lower() and self.model.lower() != "langmuir td":
-            final_result = langmuir_fit(*base_params, cond, henry_constants[0], self.meth)
+            params, values_dict = langmuir_fit(*base_params, cond, henry_constants[0], self.meth)
+            self.model = "langmuir"
 
         elif self.model.lower() == "langmuir td":
-            final_result = langmuirTD_fit(*base_params, cond, self.meth)
+            params, values_dict = langmuirTD_fit(*base_params, self.temps, cond, self.meth)
 
-        elif self.model.lower() == "gab":
-            final_result = gab_fit(*base_params, self.meth)
+        elif self.model.lower() == "dsl" and cond is True:
+            self.x = []
+            self.y = []
 
-        elif self.model.lower() == "dsl nc":
-            final_result = dsl_fit_nc(*base_params, self.meth)
+            if self.guess == self.guess_check:
+                self.guess = None
 
-        elif self.model.lower() == "dsl":
+            if type(self.df) is not list:
+                self.df = [self.df]
+
+            if type(self.compname) is not list:
+                self.compname = [self.compname]
+
             dsl_result = dsl_fit(self.df, self.keyPressures, self.keyUptakes,
                                  self.temps, self.compname, self.meth, self.guess, hen_tol)
+
             df_dict, results_dict, df_res_dict = dsl_result
 
-        if self.model.lower() != "dsl":
-            self.params = final_result[0]
-            self.df_result.append(final_result[1])
-            self.df_result.append(henry_constants[1])
+        else:
+            if self.model.lower() == "dsl" and cond is False:
+                self.model = "dsl nc"
+            params = []
+            values_dict = {}
+            for i in range(len(self.x)):
+                pars = Parameters()
+                model_params = get_fit_tuples(self.model, self.guess, i)
+                pars.add_many(*model_params)
+                results = gmod.fit(self.y[i], pars, x=self.x[i], method=meth)
 
-        # else:
-        #     isotherm = get_model(self.model)
-        #     gmod = Model(isotherm, nan_policy="omit")
-        #
-        #     model_params = get_fit_tuples(self.model, self.guess)
-        #
-        #     params = []
-        #     values_dict = {}
-        #     for i in range(len(self.x)):
-        #         pars = Parameters()
-        #         pars.add_many(*model_params)
-        #         results = gmod.fit(self.y[i], pars, x=self.x[i], method=meth)
-        #         params.append(results)
-        #         values_dict[i] = results.values
-        #         del results, pars
-        #
-        #     values_dict_sorted = {}
-        #     param_keys = _model_param_lists(self.model)
-        #     params_list = [[] for i in range(len(param_keys))]
-        #     for i in range(len(values_dict)):
-        #         for j in range(len(param_keys)):
-        # #             params_list[j].append(values_dict[i][param_keys[j]])
+                params.append(results)
+                values_dict[i] = results.values
+                del results, pars
 
-        if type(self.df) is list:
+        if self.model.lower() == 'dsl':
             self.params = results_dict
             for i in range(len(self.compname)):
                 x_i, y_i = df_dict[self.compname[i]]
                 self.x.append(x_i)
                 self.y.append(y_i)
             self.df_result = df_res_dict
+            return None
 
+        final_results_dict = {'T (C)': self.temps}
+
+        param_keys = _model_param_lists[self.model.lower()]
+        params_list = [[] for i in range(len(param_keys))]
+        for i in range(len(values_dict)):
+            for j in range(len(param_keys)):
+                params_list[j].append(values_dict[i][param_keys[j]])
+
+        df_keys = _model_df_titles[self.model.lower()]
+
+        for i in range(len(df_keys)):
+            final_results_dict[df_keys[i]] = params_list[i]
+
+
+        c_list = []
+        for i in range(len(self.x)):
+            values = values_dict[i]
+            c_innerlst = []
+            if self.model.lower() in _temp_dep_models:
+                c_innerlst.append(self.temps[i])
+            for key in param_keys:
+                c_innerlst.append(values[key])
+            c_list.append(c_innerlst)
+
+        r_sq = [r2(self.x[i], self.y[i], isotherm, c_list[i]) for i in range(len(self.x))]
+        se = [mse(self.x[i], self.y[i], isotherm, c_list[i]) for i in range(len(self.x))]
+
+        final_results_dict['R squared'] = r_sq
+        final_results_dict['MSE'] = se
+
+        df_result = pd.DataFrame.from_dict(final_results_dict)
+        pd.set_option('display.max_columns', None)
+        display(df_result)
+
+        final_result = params, df_result
+
+        if self.model.lower() != "dsl":
+            self.params = final_result[0]
+            self.df_result.append(final_result[1])
+            self.df_result.append(henry_constants[1])
+
+        if len(self.temps) >= 3:
+            heat_calc(self.model, self.temps, final_results_dict, self.x)
 
     def plot(self, logplot=False):
         np.linspace(0, 10, 301)
@@ -182,7 +209,7 @@ class IsothermFit:
 
         if type(self.df) is list:
             for i in range(len(self.df)):
-                plot_settings(self.logplot, 'xaxis', 'yaxis')
+                plot_settings(logplot, 'xaxis', 'yaxis')
 
                 comp_x_params = self.params[self.compname[i]]
                 plt.title(self.compname[i])
@@ -216,7 +243,7 @@ class IsothermFit:
                     self.df_result[comp].to_json(filenames[0])
                 print('Conversion successful')
         else:
-            filenames = [filestring[0]+filetype, filestring[1]+filetype]
+            filenames = [filestring[0] + filetype, filestring[1] + filetype]
             if filetype == '.csv':
                 self.df_result[0].to_csv(filenames[0])
                 self.df_result[1].to_csv(filenames[1])
@@ -226,10 +253,8 @@ class IsothermFit:
             print('Conversion successful')
 
 
-
-
-# df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
-# compname = 'N2'
+# df2 = pd.read_csv('Computational Data (EPFL) CO2.csv')
+# compname = 'CO2'
 # temps = [10, 40, 100]
 # meth = 'tnc'
 # keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
@@ -240,7 +265,6 @@ class IsothermFit:
 #
 # tolerance = 0.9999  # set minimum r squared value
 #
-# langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir")
+# langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir linear 2")
 # langmuir.fit(False, True)
 # langmuir.plot(True)
-

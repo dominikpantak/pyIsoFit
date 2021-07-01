@@ -38,7 +38,7 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
         hen_ilst = []
         # This loop adds data points while the points correspond to a henry fit with an R^2 of above 0.9995
         if type(tol_or_customhen) == list:
-            while x_i[j] < tol_or_customhen[i] and j < len(x_i)-2:
+            while x_i[j] < tol_or_customhen[i] and j < len(x_i) - 2:
                 x_henry.append(x_i[j])
                 y_henry = dataset[:len(x_henry)]
                 hen = y_henry[-1] / x_henry[-1]
@@ -119,20 +119,23 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
 
     return henry_constants, df_henry
 
+
 def get_model(model):
     if model.lower() == "langmuir":
+        return langmuir1
+    if model.lower() == "langmuir test":
         return langmuir1
     if model.lower() == "langmuir linear 1":
         return langmuirlin1
     if model.lower() == "langmuir linear 2":
         return langmuirlin2
-    if model.lower() == "langmuir TD":
+    if model.lower() == "langmuir td":
         return langmuirTD
-    if model.lower() == "dsl nc":
+    if model.lower() == "dsl":
         return dsl
     if model.lower() == "gab":
         return gab
-    if model == "mdr":
+    if model.lower() == "mdr":
         return mdr
 
 
@@ -149,7 +152,7 @@ def get_guess_params(model, df, keyUptakes, keyPressures):
             "q": saturation_loading
         }
 
-    if model.lower() == "Langmuir TD":
+    if model.lower() == "langmuir td":
         return {
             "b0": langmuir_b,
             "q": saturation_loading,
@@ -179,6 +182,46 @@ def get_guess_params(model, df, keyUptakes, keyPressures):
             "c": langmuir_b
         }
 
+def get_fit_tuples(model, guess, i=0):
+    if model.lower() == "langmuir test":
+        return ('q', guess['q'][i], True, 0), \
+               ('b', guess['b'][i], True, 0),
+
+    if model.lower() == "dsl nc":
+        return ('q1', guess['q1'][i], True, 0), \
+               ('q2', guess['q2'][i], True, 0), \
+               ('b1', guess['b1'][i], True, 0), \
+               ('b2', guess['b2'][i], True, 0),
+
+    if model.lower() == "mdr":
+        return ('n0', guess['n0'][i], True, 0), \
+               ('n1', guess['n1'][i], True, 0), \
+               ('a', guess['a'][i], True, 0), \
+               ('c', guess['c'][i], True, 0)
+
+    if model.lower() == "gab":
+        return ('n', guess['n'][i], True, 0), \
+               ('ka', guess['ka'][i], True, 0), \
+               ('ca', guess['ca'][i], True, 0)
+
+
+_model_param_lists = {
+    'mdr': ['n0', 'n1', 'a', 'c'],
+    'langmuir': ['q', 'b'],
+    'langmuir td': ['q', 'b0', 'h'],
+    'dsl nc': ['q1', 'q2', 'b1', 'b2'],
+    'gab': ['n', 'ka', 'ca']
+}
+
+_model_df_titles = {
+    'mdr': ['n0', 'n1', 'a', 'c'],
+    'langmuir': ['q (mmol/g)', 'b (1/bar)'],
+    'langmuir td': ['q (mmol/g)', 'b0 (1/bar)', 'h (kJ/mol)'],
+    'dsl nc': ['q1 (mmol/g)', 'q2 (mmol/g)', 'b1 (1/bar)', 'b2 (1/bar)'],
+    'gab': ['n (mmol/g)', 'ka (H2O activity coeff.)', 'ca (GAB const.)']
+}
+
+_temp_dep_models = ['langmuir td', 'mdr td']
 
 def plot_settings(log, xtitle='Pressure (bar)', ytitle='Uptake (mmol/g)'):
     tick_style = {'direction': 'in',
@@ -194,33 +237,3 @@ def plot_settings(log, xtitle='Pressure (bar)', ytitle='Uptake (mmol/g)'):
     plt.ylabel(ytitle)
     plt.tick_params(**tick_style)
     plt.grid()
-
-
-_model_params = {
-    'langmuir': {
-        'q': np.nan,
-        'b': np.nan
-    },
-    'langmuir td': {
-        'q': np.nan,
-        'b0': np.nan,
-        'h': np.nan
-    },
-    'dsl': {
-        'q1': np.nan,
-        'q2': np.nan,
-        'b1': np.nan,
-        'b2': np.nan
-    },
-    'mdr': {
-        'n0': np.nan,
-        'n1': np.nan,
-        'a': np.nan,
-        'c': np.nan
-    }
-}
-
-_model_param_lists = {
-    'mdr': ['n0', 'n1', 'a', 'c'],
-    'langmuir': ['q', 'b']
-}

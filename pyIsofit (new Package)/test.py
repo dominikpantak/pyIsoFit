@@ -13,6 +13,6 @@ keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 
 tolerance = 0.9999  # set minimum r squared value
 
-langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "dsl nc")
+langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir")
 langmuir.fit(False, True)
 langmuir.plot(True)
