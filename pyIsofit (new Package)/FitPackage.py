@@ -227,9 +227,9 @@ class IsothermFit:
 
 
 
-# df1 = pd.read_csv('LewatitH₂O.csv')
-df2 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-compname = 'CO2'
+
+df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+compname = 'N2'
 temps = [10, 40, 100]
 meth = 'tnc'
 keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
@@ -243,4 +243,4 @@ tolerance = 0.9999  # set minimum r squared value
 langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir")
 langmuir.fit(False, True)
 langmuir.plot(True)
-# langmuir.save(['Lewatit CO2 results single Langmuir', 'Henry2'])
+
