@@ -87,9 +87,9 @@ class IsothermFit:
             x2 = []
             y2 = []
             # Importing data and allocating to variables
-            for i in range(len(keyPressures)):
-                x2.append(self.df[keyPressures[i]].values)
-                y2.append(self.df[keyUptakes[i]].values)
+            for i in range(len(self.keyPressures)):
+                x2.append(self.df[self.keyPressures[i]].values)
+                y2.append(self.df[self.keyUptakes[i]].values)
 
             if self.model.lower() == "langmuir linear 1":
                 for i in range(len(self.keyPressures)):
@@ -126,10 +126,10 @@ class IsothermFit:
             final_result = langmuirTD_fit(*base_params, cond, self.meth)
 
         elif self.model.lower() == "gab":
-            final_result = gab_fit(*base_params, meth)
+            final_result = gab_fit(*base_params, self.meth)
 
         elif self.model.lower() == "dsl nc":
-            final_result = dsl_fit_nc(*base_params, meth)
+            final_result = dsl_fit_nc(*base_params, self.meth)
 
         elif self.model.lower() == "dsl":
             dsl_result = dsl_fit(self.df, self.keyPressures, self.keyUptakes,
@@ -166,8 +166,8 @@ class IsothermFit:
 
         if type(self.df) is list:
             self.params = results_dict
-            for i in range(len(compname)):
-                x_i, y_i = df_dict[compname[i]]
+            for i in range(len(self.compname)):
+                x_i, y_i = df_dict[self.compname[i]]
                 self.x.append(x_i)
                 self.y.append(y_i)
             self.df_result = df_res_dict
@@ -184,8 +184,8 @@ class IsothermFit:
             for i in range(len(self.df)):
                 plot_settings(self.logplot, 'xaxis', 'yaxis')
 
-                comp_x_params = self.params[compname[i]]
-                plt.title(compname[i])
+                comp_x_params = self.params[self.compname[i]]
+                plt.title(self.compname[i])
                 for j in range(len(self.keyPressures)):
                     plt.plot(self.x[i][j], comp_x_params[j].best_fit, '-', color=colours[j],
                              label="{temps} °C Fit".format(temps=self.temps[j]))
