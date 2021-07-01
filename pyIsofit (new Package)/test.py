@@ -1,4 +1,5 @@
-import FitPackage
+from FitPackage import IsothermFit
+import pandas as pd
 
 df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
 compname = 'N2'
@@ -12,6 +13,6 @@ keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 
 tolerance = 0.9999  # set minimum r squared value
 
-langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir")
+langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "dsl nc")
 langmuir.fit(False, True)
 langmuir.plot(True)
