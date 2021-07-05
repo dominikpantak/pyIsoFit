@@ -249,9 +249,7 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     return df_dict, results_dict, df_res_dict
 
 
-def langmuir_fit(model, x, y, guess, cond, henry_constants, meth):
-    isotherm = get_model(model)
-    gmod = Model(isotherm, nan_policy="omit")
+def langmuir_fit(gmod, x, y, guess, cond, henry_constants, meth):
     if cond:
         print("Constraint 1: q sat = q_init for all temp")
         print("Constraint 2: qsat*b = Henry constant for all temp")
@@ -288,10 +286,7 @@ def langmuir_fit(model, x, y, guess, cond, henry_constants, meth):
 
     return params, values_dict
 
-def langmuirTD_fit(model, x, y, guess, temps, cond, meth):
-    isotherm = get_model(model)
-    gmod = Model(isotherm, nan_policy="omit")
-
+def langmuirTD_fit(gmod, x, y, guess, temps, cond, meth):
     q_guess = guess['q']
     h_guess = guess['h']
     b0_guess = guess['b0']

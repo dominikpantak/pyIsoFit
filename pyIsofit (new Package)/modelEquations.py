@@ -48,7 +48,7 @@ def dslTD(x, t, q1, q2, h1, h2, b01, b02):
 #################################################
 
 
-def mdrTD(x, t, n0, n1, a, b, e):
+def mdrtd(x, t, n0, n1, a, b, e):
     k = (r * t) / (b * e)
     term1a = (1 - np.exp(- a * x)) * n0
     term1b = np.exp((-k * ((np.log(1 / x)) ** 2)))

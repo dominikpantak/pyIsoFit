@@ -34,7 +34,10 @@ class IsothermFit:
                  y=None,
                  params=None,
                  df_result=None,
-                 guess_check=None):
+                 guess_check=None,
+                 henry_params=None,
+                 rel_pres=False,
+                 input_model=None):
 
         self.df = df  # Dataframe with uptake vs. pressure data
         self.temps = temps  # Temp in deg C
@@ -44,6 +47,8 @@ class IsothermFit:
         self.keyPressures = keyPressures  # names of the column headers for pressure and uptakes
         self.keyUptakes = keyUptakes  #
         self.model = model
+        self.input_model = model
+
         if type(self.df) is list and model.lower() != "dsl":
             raise Exception("\n\n\n\nEnter one dataframe, not a list of dataframes")
 
@@ -54,6 +59,9 @@ class IsothermFit:
         self.y = x if y is not None else []
         self.params = params if y is not None else []
         self.df_result = df_result if df_result is not None else []
+
+        self.henry_params = henry_params
+        self.rel_pres = rel_pres
 
         # ! Dictionary of parameters as a starting point for data fitting
         self.guess = get_guess_params(model, df, keyUptakes, keyPressures)
@@ -67,7 +75,17 @@ class IsothermFit:
                                     " in the %s model." % (param, model))
                 self.guess[param] = guess_val
 
-    def fit(self, cond=True, show_hen=False, hen_tol=0.999):
+    def fit(self, cond=True, meth='leastsq', show_hen=False, hen_tol=0.999, rel_pres=False):
+        henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol,
+                                       self.compname)
+
+        if self.model.lower() == "henry":
+            self.henry_params = henry_constants
+            return None
+
+        if "mdr" in self.model.lower():
+            self.rel_pres = True
+
         # Reading data from dataframe with respect to provided keys
         x2 = []
         y2 = []
@@ -86,26 +104,41 @@ class IsothermFit:
                 self.y.append([p / q for (p, q) in zip(x2[i], y2[i])])
                 self.x.append(x2[i])
 
-        elif self.model.lower() == "mdr" or self.model.lower() == "mdr td":
+        elif rel_pres is True:
+            self.rel_pres = True
             for i in range(len(self.keyPressures)):
                 pressure = x2[i]
                 self.x.append([p / pressure[-1] for p in x2[i]])
-                self.y.append([i for i in y2])
+                self.y.append(y2[i])
                 del pressure
         else:
             self.x = x2
             self.y = y2
-            # self.x = [[x for x in x2[i] if not math.isnan(x)] for i in range(len(x2))]
-            # self.y = [[y for y in y2[i] if not math.isnan(y)] for i in range(len(y2))]
 
-        base_params = self.model, self.x, self.y, self.guess
+        del x2, y2
 
-        henry_constants = henry_approx(self.df, self.keyPressures, self.keyUptakes, show_hen, hen_tol,
-                                       self.compname)
+        # nan filter for datasets - fixes bug where pandas reads empty cells as nan values
+        x_filtr = []
+        y_filtr = []
+        for i in range(len(self.x)):
+            if np.nan in self.x[i] or np.nan in self.y[i]:
+                x_filtr.append(np.array(self.x[i][~np.isnan(self.x[i])]))
+                y_filtr.append(np.array(self.y[i][~np.isnan(self.y[i])]))
+            else:
+                x_filtr.append(np.array(self.x[i]))
+                y_filtr.append(np.array(self.y[i]))
+
+        self.x = x_filtr
+        self.y = y_filtr
+
+        isotherm = get_model(self.model)
+        gmod = Model(isotherm, nan_policy='omit')
+
+        base_params = gmod, self.x, self.y, self.guess
+
+
 
         # SINGLE LANGMUIR FITTING
-        isotherm = get_model(self.model)
-        gmod = Model(isotherm, nan_policy="omit")
 
         if "langmuir" in self.model.lower() and self.model.lower() != "langmuir td":
             params, values_dict = langmuir_fit(*base_params, cond, henry_constants[0], self.meth)
@@ -135,11 +168,14 @@ class IsothermFit:
         else:
             if self.model.lower() == "dsl" and cond is False:
                 self.model = "dsl nc"
+            elif self.model.lower() == "bddt 2n" or self.model.lower() == "bddt 2n-1" or self.model.lower() == "bddt":
+                self.model = "bddt"
+
             params = []
             values_dict = {}
             for i in range(len(self.x)):
                 pars = Parameters()
-                model_params = get_fit_tuples(self.model, self.guess, i)
+                model_params = get_fit_tuples(self.model, self.guess, self.temps, i, cond)
                 pars.add_many(*model_params)
                 results = gmod.fit(self.y[i], pars, x=self.x[i], method=meth)
 
@@ -180,7 +216,12 @@ class IsothermFit:
                 c_innerlst.append(values[key])
             c_list.append(c_innerlst)
 
-        r_sq = [r2(self.x[i], self.y[i], isotherm, c_list[i]) for i in range(len(self.x))]
+        # r_sq = [r2(self.x[i], self.y[i], isotherm, c_list[i]) for i in range(len(self.x))]
+        r_sq = []
+        for i in range(len(self.x)):
+            rsqres = r2(self.x[i], self.y[i], isotherm, c_list[i])
+            r_sq.append(rsqres)
+
         se = [mse(self.x[i], self.y[i], isotherm, c_list[i]) for i in range(len(self.x))]
 
         final_results_dict['R squared'] = r_sq
@@ -209,7 +250,7 @@ class IsothermFit:
 
         if type(self.df) is list:
             for i in range(len(self.df)):
-                plot_settings(logplot, 'xaxis', 'yaxis')
+                plot_settings(logplot)
 
                 comp_x_params = self.params[self.compname[i]]
                 plt.title(self.compname[i])
@@ -219,8 +260,27 @@ class IsothermFit:
                     plt.plot(self.x[i][j], self.y[i][j], 'ko', color='0.75',
                              label="Data at {temps} °C".format(temps=self.temps[j]))
 
-        else:
+        if self.model.lower() == "henry":
+            henry_const = self.henry_params[0]
+            xy_dict = self.henry_params[2]
+            x_hen = xy_dict['x']
+            y_hen = xy_dict['y']
             plot_settings(logplot)
+            for i in range(len(self.x)):
+                y_henfit = henry(x_hen[i], henry_const[i])
+                subplot_size = get_subplot_size(self.x, i)
+
+                plt.subplot(subplot_size[0], subplot_size[1], subplot_size[2])
+                plt.subplots_adjust(wspace=0.3, hspace=0.2)
+
+                plt.title('Henry region at ' + str(self.temps[i]) + ' °C')
+                plt.plot(x_hen[i], y_henfit, '-', color=colours[i],
+                         label="{temps} °C Fit".format(temps=self.temps[i]))
+                plt.plot(x_hen[i], y_hen[i], 'ko', color='0.75',
+                         label="Data at {temps} °C".format(temps=self.temps[i]))
+
+        else:
+            plot_settings(logplot, self.input_model, self.rel_pres)
 
             for i in range(len(self.keyPressures)):
                 plt.plot(self.x[i], self.params[i].best_fit, '-', color=colours[i],
@@ -236,27 +296,33 @@ class IsothermFit:
 
         if type(self.df_result) is dict:
             for comp in self.df_result:
-                filenames = [filestring[0] + comp + filetype, filestring[1] + comp + filetype]
+                filenames = [filenames[0] + comp + filetype, filenames[1] + comp + filetype]
                 if filetype == '.csv':
                     self.df_result[comp].to_csv(filenames[0])
                 elif filetype == '.json':
                     self.df_result[comp].to_json(filenames[0])
-                print('Conversion successful')
+                print('File saved to directory')
         else:
-            filenames = [filestring[0] + filetype, filestring[1] + filetype]
+            filenames = [filenames[0] + filetype, filenames[1] + filetype]
             if filetype == '.csv':
                 self.df_result[0].to_csv(filenames[0])
                 self.df_result[1].to_csv(filenames[1])
             elif filetype == '.json':
                 self.df_result[0].to_json(filenames[0])
                 self.df_result[1].to_json(filenames[1])
-            print('Conversion successful')
+            print('File saved to directory')
+
+    def emod_fit(self, *args, emod):
+        pass
 
 
 # df2 = pd.read_csv('Computational Data (EPFL) CO2.csv')
 # compname = 'CO2'
 # temps = [10, 40, 100]
-# meth = 'tnc'
+#
+# #keyUptakes = ['q']
+# #keyPressures = ['p']
+#
 # keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
 # keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 #
@@ -265,6 +331,7 @@ class IsothermFit:
 #
 # tolerance = 0.9999  # set minimum r squared value
 #
-# langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "Langmuir linear 2")
-# langmuir.fit(False, True)
-# langmuir.plot(True)
+# langmuir = IsothermFit(df2, compname, temps, keyPressures, keyUptakes, "mdr")
+# langmuir.fit(cond=False, show_hen=True, meth='tnc')
+# langmuir.plot(logplot=True)
+

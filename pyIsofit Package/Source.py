@@ -91,7 +91,6 @@ def b0_calc(b, h, t):
 
 # For a maximum (2n-1) layers which can be fit into a capillary:
 def BET_ext1(x, c, n, g, q):
-    #g = np.exp(h/(r*t))
     term1 = (c*x)/(1-x)
     term2_num = 1 + (((n * g) / 2) - n) * x**(n - 1) - (n * g - n + 1)*x**n + (n * g /2)*x**(n + 1)
     term2_den = 1 + (c - 1)*x + ((c * g/2) - c)*x**n - (c * g /2)*x**(n + 1)
@@ -99,7 +98,6 @@ def BET_ext1(x, c, n, g, q):
 
 # For a maximum number of 2n layers:
 def BET_ext2(x, c, n, g, q):
-    #g = np.exp(h/(r*t))
     term1 = (c*x)/(1-x)
     term2_num = 1 + (((n * g) / 2) - n / 2) * x**(n - 1) - (n * g + 1)*x**n + (n * g /2 + n / 2)*x**(n + 1)
     term2_den = 1 + (c - 1)*x + ((c * g/2) - c/2)*x**n - (c * g /2 + c / 2)*x**(n + 1)
