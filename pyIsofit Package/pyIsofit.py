@@ -200,8 +200,8 @@ class Models:
 
 
 
-df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+df1 = pd.read_csv('Computational Data (EPFL) N2.csv')
+df2 = pd.read_csv('Computational Data (EPFL) CO2.csv')
 
 df_list = [df1, df2]
 
@@ -210,7 +210,7 @@ temps = [10, 40, 100]
 # Need to input the dataframe as a list into the class
 # Lists for pressure and uptake keys are also required
 
-compnames = ['CO2', 'N2']  # Temp in C
+compnames = ['N2', 'CO2']  # Temp in C
 meth = 'tnc'  # Optional picking mathematical method for fitting (default is leastsq)
 # initial guess values#
 #       [q1    q2     b1      b2]
@@ -221,7 +221,7 @@ keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'U
 keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
 
 
-params = temps, guess, keyPressures, keyUptakes, compnames, df_list, 0.999, True, meth, 'extend', 0.85
+params = temps, guess, keyPressures, keyUptakes, compnames, df_list, 0.999, True, meth, 'extend', 0.15
 #df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
 #df = [df1, df2]
 fitDSL = iso.DSL_fit(*params)

@@ -309,7 +309,7 @@ _model_df_titles = {
 
 _temp_dep_models = ['langmuir td', 'mdr td']
 
-def plot_settings(log, model=None, rel_pres=False):
+def plot_settings(log, model="default", rel_pres=False):
     if model.lower() == "langmuir linear 1":
         xtitle = '1/Pressure [1/bar]'
         ytitle = '1/Uptake [g/mmol]'

@@ -125,9 +125,14 @@ def ext_dslA(x, t, q1A, q2A, h1A, h2A, b01A, b02A, h1B, h2B, b01B, b02B, yA):
     b2A = b02A*np.exp(-h2A/(r*t))
     b1B = b01B*np.exp(-h1B/(r*t))
     b2B = b02B*np.exp(-h2B/(r*t))
-    yB = 1 - yA    
-    e1 = q1A * (b1A * x * yA) / (1 + (b1A * x * yA) + (b1B * x * yB) )
-    e2 = q2A * (b2A * x * yA) / (1 + (b2A * x * yA) + (b2B * x * yB) )
+    yB = 1 - yA
+    print({'b1A': b1A, 'b2A': b2A, 'b1B': b1B, 'b2B': b2B})
+    num_a = q1A * b1A * yA
+    num_b = q2A * b2A * yA
+    den_a = (b1A * yA + b1B * yB)
+    den_b = (b2A * yA + b2B * yB)
+    e1 = num_a * x / (1 + den_a * x )
+    e2 = num_b * x / (1 + den_b * x )
     return e1 + e2
 
 def ext_dslB(x, t, q1B, q2B, h1A, h2A, b01A, b02A, h1B, h2B, b01B, b02B, yB):
@@ -135,14 +140,19 @@ def ext_dslB(x, t, q1B, q2B, h1A, h2A, b01A, b02A, h1B, h2B, b01B, b02B, yB):
     b2A = b02A*np.exp(-h2A/(r*t))
     b1B = b01B*np.exp(-h1B/(r*t))
     b2B = b02B*np.exp(-h2B/(r*t))
-    yA = 1 - yB    
+    yA = 1 - yB
     e1 = q1B * (b1B * x * yB) / (1 + (b1B * x * yB) + (b1A * x * yA) )
     e2 = q2B * (b2B * x * yB) / (1 + (b2B * x * yB) + (b2A * x * yA) )
+    num_a = q1B * b1B * yB
+    num_b = q2B * b2B * yB
+    den_a = (b1A * yA + b1B * yB)
+    den_b = (b2A * yA + b2B * yB)
+    e1 = num_a * x / (1 + den_a * x )
+    e2 = num_b * x / (1 + den_b * x )
     return e1 + e2
 
 def sel(qA, qB, yA):
     return (qA/qB)/(yA/(1-yA))
-
 
 ############# EMPIRICAL MODELS ################
 def sips(x, q, b, n):
@@ -1774,25 +1784,25 @@ class DSL_fit:
 #fit_isotherm(self, temps, guess, keyPressures, keyUptakes, compnames, df_list, logplot=False, tol=0.9999,
                      #meth='leastsq', fix=None, yA=None)
 
-df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
-df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
-
-df_list = [df1, df2]
-
-temps = [10, 40, 100]
-
-compnames = ['CO2', 'N2']  # Temp in C
-meth = 'tnc'  # Optional picking mathematical method for fitting (default is leastsq)
-
-keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
-keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
-
-guess = [1, 1, 1, 1]
-
-test = DSL_fit(temps, guess, keyPressures, keyUptakes, compnames, df_list)
-test.fit_isotherm(temps, guess, keyPressures, keyUptakes, compnames, df_list)
-
-
+# df1 = pd.read_csv('Computational Data (EPFL) CO2.csv')
+# df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+#
+# df_list = [df1, df2]
+#
+# temps = [10, 40, 100]
+#
+# compnames = ['CO2', 'N2']  # Temp in C
+# meth = 'tnc'  # Optional picking mathematical method for fitting (default is leastsq)
+#
+# keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
+# keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
+#
+# guess = [1, 1, 1, 1]
+#
+# test = DSL_fit(temps, guess, keyPressures, keyUptakes, compnames, df_list)
+# test.fit_isotherm(temps, guess, keyPressures, keyUptakes, compnames, df_list)
+#
+#
 
 
 # In[15]:
