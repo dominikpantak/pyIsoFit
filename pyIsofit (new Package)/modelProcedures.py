@@ -7,23 +7,26 @@ from lmfit import Model, Parameters
 from IPython.display import display
 from modelEquations import *
 from utilityFunctions import *
-
+from utilityFunctions import _temp_dep_models
 
 def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
-            meth='tnc', guess=None, hentol=0.9999, show_hen=False):
+            meth='tnc', guess=None, hentol=0.9999, show_hen=False, henry_off=False):
     # Here is the step procedure mentioned above
     # The outer class controls which step is being carried out
     # The first step is to find the initial q1, q2, b1, b2 values with the henry constraint se
     def step1(x, y, meth, guess, henry_constants):
 
-        gmod = Model(dsl)
+        gmod = Model(dsl, nan_policy='omit')
         pars1 = Parameters()
 
-        pars1.add('q1', value=guess['q1'][0], min=0)
-        pars1.add('q2', value=guess['q2'][0], min=0)
-        pars1.add('b2', value=guess['b2'][0])
-        pars1.add('delta', value=henry_constants[0], vary=False)
-        pars1.add('b1', expr='(delta-q2*b2)/q1')  # KH = b1*q1 + b2*q2
+        pars1.add('q1', value=guess['q1'][0], min=0, max=20)
+        pars1.add('q2', value=guess['q2'][0], min=0, max=20)
+        pars1.add('b2', value=guess['b2'][0], min=0, max=1000)
+        if henry_off:
+            pars1.add('b1', value=guess['b1'][0], min=0, max=1000)
+        else:
+            pars1.add('delta', value=henry_constants[0], vary=False)
+            pars1.add('b1', expr='(delta-q2*b2)/q1')  # KH = b1*q1 + b2*q2
 
         result1 = gmod.fit(y[0], pars1, x=x[0], method=meth)
 
@@ -49,8 +52,11 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
             for i in range(len(x)):
                 pars = Parameters()
                 pars.add('q', value=qtot, min=qtot, max=qtot + 0.001)
-                pars.add('delta', value=henry_constants[i], vary=False)
-                pars.add('b', expr='delta/q')
+                if henry_off:
+                    pars.add('b2', value=guess['b2'][i])
+                else:
+                    pars.add('delta', value=henry_constants[i], vary=False)
+                    pars.add('b', expr='delta/q')
 
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
                 c = [q1fix, q2fix, results.values['b'], results.values['b']]
@@ -60,15 +66,18 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
                 del pars
 
         else:
-            gmod = Model(dsl)
+            gmod = Model(dsl, nan_policy='omit')
             c_list = []
             for i in range(len(x)):
                 pars = Parameters()
                 pars.add('q1', value=q1fix, min=q1fix, max=q1fix + 0.001)
                 pars.add('q2', value=q2fix, min=q2fix, max=q2fix + 0.001)
                 pars.add('b2', value=guess['b2'][i], min=0)
-                pars.add('delta', value=henry_constants[i], vary=False)
-                pars.add('b1', expr='(delta-q2*b2)/q1', min=0)  # KH = b*q
+                if henry_off:
+                    pars.add('b1', value=guess['b1'][i])
+                else:
+                    pars.add('delta', value=henry_constants[i], vary=False)
+                    pars.add('b1', expr='(delta-q2*b2)/q1', min=0)  # KH = b*q
 
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
                 c = [results.values['q1'], results.values['q2'],
@@ -91,15 +100,13 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
         mH1, bH1, rH1, pH1, sterrH1 = stats.linregress(T, ln_b1)
         mH2, bH2, rH2, pH2, sterrH2 = stats.linregress(T, ln_b2)
 
-        h = [-0.001 * mH1 * r, -0.001 * mH2 * r]
+        h = [-mH1 * r, -mH2 * r]
         b0 = [np.exp(bH1), np.exp(bH2)]
 
         return qmax1[0], qmax2[0], h, b0
         # The package returns these sets of parameters to be used as initial guesses for the final step
 
     def step3(x, y, meth, guess, henry_constants, temps, step2_pars, comp2=False):
-        tempsK = [t + 273 for t in temps]
-
         # unpacking tuples
         q1_in = step2_pars[0]
         q2_in = step2_pars[1]
@@ -111,15 +118,15 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
 
         if comp2 == True:
             # Again, we fit to the single langmuir form when the least adsorbed species is used
-            gmod = Model(langmuirTD)
+            gmod = Model(langmuirTD, nan_policy='omit')
             qtot = q1_in + q2_in
             c_list = []
             results_lst = []
             for i in range(len(x)):
                 pars = Parameters()
-                pars.add('t', value=tempsK[i], vary=False)
+                pars.add('t', value=temps[i], vary=False)
                 pars.add('q', value=qtot, min=qtot, max=qtot + 0.001)
-                pars.add('h', value=h_in[0] * 1000)
+                pars.add('h', value=h_in[0])
                 pars.add('b0', value=b0_in[0], min=0)
 
                 results = gmod.fit(y[i], pars, x=x[i], method=meth)
@@ -137,11 +144,11 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
             results_lst = []
             for i in range(len(x)):
                 pars = Parameters()
-                pars.add('t', value=tempsK[i], vary=False)
+                pars.add('t', value=temps[i], vary=False)
                 pars.add('q1', value=q1_in, min=q1_in, max=q1_in + 0.001)
                 pars.add('q2', value=q2_in, min=q2_in, max=q2_in + 0.001)
-                pars.add('h1', value=h_in[0] * 1000)
-                pars.add('h2', value=h_in[1] * 1000)
+                pars.add('h1', value=h_in[0])
+                pars.add('h2', value=h_in[1])
                 pars.add('b01', value=b0_in[0], min=0)
                 pars.add('b02', value=b0_in[1], min=0)
 
@@ -210,7 +217,7 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     qhigh = 0
     if guess is None:
         guess = [get_guess_params("DSL", df_list[i], keyUptakes, keyPressures) for i in range(len(df_list))]
-    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, True, hentol, compnames[i])[0] for i in
+    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, show_hen, hentol, compnames[i])[0] for i in
                        range(len(df_list))]
 
     for i in range(len(compnames)):
@@ -252,10 +259,11 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     return df_dict, results_dict, df_res_dict, params_dict
 
 
-def langmuir_fit(gmod, x, y, guess, cond, henry_constants, meth):
+def langmuir_fit(gmod, x, y, guess, cond, henry_constants, meth, henry_off):
     if cond:
         print("Constraint 1: q sat = q_init for all temp")
-        print("Constraint 2: qsat*b = Henry constant for all temp")
+        if not henry_off:
+            print("Constraint 2: qsat*b = Henry constant for all temp")
 
     q_guess = guess['q']
     b_guess = guess['b']
@@ -273,8 +281,11 @@ def langmuir_fit(gmod, x, y, guess, cond, henry_constants, meth):
             else:
                 pars.add('q', value=q_fix, min=q_fix, max=q_fix + 0.001)
 
-            pars.add('delta', value=henry_constants[i], vary=False)
-            pars.add('b', expr='delta/q')  # KH = b*q
+            if henry_off:
+                pars.add('b', value=b_guess[i], min=0)
+            else:
+                pars.add('delta', value=henry_constants[i], vary=False)
+                pars.add('b', expr='delta/q')  # KH = b*q
         else:
             pars.add('q', value=q_guess[i], min=0)
             pars.add('b', value=b_guess[i], min=0)
@@ -298,11 +309,9 @@ def langmuirTD_fit(gmod, x, y, guess, temps, cond, meth):
     values_dict = {}
     params = []
 
-    tempsK = [t + 273 for t in temps]
-
     for i in range(len(x)):
         pars = Parameters()
-        pars.add('t', value=tempsK[i], vary=False)
+        pars.add('t', value=temps[i], vary=False)
         if cond:
             if i == 0:
                 pars.add('q', value=q_guess[0], min=0)
@@ -312,7 +321,7 @@ def langmuirTD_fit(gmod, x, y, guess, temps, cond, meth):
         else:
             pars.add('q', value=q_guess[i], min=0)
 
-        pars.add('h', value=h_guess[i] * 1000)
+        pars.add('h', value=h_guess[i])
         pars.add('b0', value=b0_guess[i], min=0)
 
         results = gmod.fit(y[i], pars, x=x[i], method=meth)
@@ -328,7 +337,7 @@ def langmuirTD_fit(gmod, x, y, guess, temps, cond, meth):
 
 def heat_calc(model, temps, param_dict, x):
     site = ['A', 'B', 'C']
-    t = np.array([1 / (temp + 273) for temp in temps])
+    t = [1 / i for i in temps]
 
     def isosteric_heat(t, yparams, j=0):
         ln_b = np.array([np.log(i) for i in yparams])
@@ -356,7 +365,7 @@ def heat_calc(model, temps, param_dict, x):
         sterr = (1.96 * np.std(h) / (len(h)) ** 0.5)
         print("ΔH_is: " + str(round(avgh, 2)) + " (∓ " + str(round(sterr, 2)) + ") kJ/mol. ")
 
-    elif "langmuir" in model.lower() and model.lower() != "langmuir td":
+    elif model.lower() not in _temp_dep_models:
         yparams = param_dict['b (1/bar)']
         isosteric_heat(t, yparams)
 
@@ -374,7 +383,7 @@ def ext_dsl(param_dict, temps, x, comps, yfracs):
         return None
 
     def vant_hoff(b0, h, t):
-        return b0 * np.exp(-h / (r * (t + 273) ) )
+        return b0 * np.exp(-h / (r * t) )
 
     def calc_q(x, num_a, num_b, den_a, den_b):
         e1 = num_a * x / (1 + den_a * x )

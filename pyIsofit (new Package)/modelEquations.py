@@ -105,32 +105,8 @@ def gab(x, n, ka, ca):
     den = (1 - ka * x) * (1 + (ca - 1) * ka * x)
     return num / den
 
-
-###############################################################################
-##################### EXTENDED MODELS ##################################
-
-# Extended dual site langmuir model for the prediction of binary adsorption
-# This calculates the absolute adsorption of A wrt pressure
-def ext_dslA(x, t, q1A, q2A, h1A, h2A, b01A, b02A, h1B, h2B, b01B, b02B, yA):
-    b1A = b01A * np.exp(-h1A / (r * t))
-    b2A = b02A * np.exp(-h2A / (r * t))
-    b1B = b01B * np.exp(-h1B / (r * t))
-    b2B = b02B * np.exp(-h2B / (r * t))
-    yB = 1 - yA
-    e1 = q1A * (b1A * x * yA) / (1 + (b1A * x * yA) + (b1B * x * yB))
-    e2 = q2A * (b2A * x * yA) / (1 + (b2A * x * yA) + (b2B * x * yB))
-    return e1 + e2
-
-
-def ext_dslB(x, t, q1B, q2B, h1A, h2A, b01A, b02A, h1B, h2B, b01B, b02B, yB):
-    b1A = b01A * np.exp(-h1A / (r * t))
-    b2A = b02A * np.exp(-h2A / (r * t))
-    b1B = b01B * np.exp(-h1B / (r * t))
-    b2B = b02B * np.exp(-h2B / (r * t))
-    yA = 1 - yB
-    e1 = q1B * (b1B * x * yB) / (1 + (b1B * x * yB) + (b1A * x * yA))
-    e2 = q2B * (b2B * x * yB) / (1 + (b2B * x * yB) + (b2A * x * yA))
-    return e1 + e2
+def bet(x, n, c):
+    return (c * x * n) / ((1 - x) * (1 - x + c * x))
 
 
 def sel(qA, qB, yA):
@@ -143,6 +119,10 @@ def sips(x, q, b, n):
 
 
 def toth(x, q, b, t):
+    return q * ((b * x) / ((1 + (b * x) ** t) ** (1 / t)))
+
+def tothTD(x, temp, q, b0, h, t):
+    b = b0 * np.exp(-h / (r * temp))
     return q * ((b * x) / ((1 + (b * x) ** t) ** (1 / t)))
 
 

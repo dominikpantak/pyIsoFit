@@ -149,13 +149,17 @@ def get_model(model):
         return bddt2
     if model.lower() == "dodo":
         return dodo
+    if model.lower() == "bet":
+        return bet
+    if model.lower() == "toth td":
+        return tothTD
 
 
 def get_guess_params(model, df, keyUptakes, keyPressures):
     saturation_loading = [1.1 * df[keyUptakes[i]].max() for i in range(len(keyPressures))]
     henry_lim = henry_approx(df, keyPressures, keyUptakes, False)[0]
     langmuir_b = [kh / qsat for (kh, qsat) in zip(henry_lim, saturation_loading)]
-    h_guess = [-5 for i in range(len(keyPressures))]
+    h_guess = [-5000 for i in range(len(keyPressures))]
 
     if "langmuir" in model.lower() and model.lower() != "langmuir td":
         return {
@@ -210,7 +214,7 @@ def get_guess_params(model, df, keyUptakes, keyPressures):
         return {
             "q": saturation_loading,
             "b": langmuir_b,
-            "t": [1 for q in saturation_loading]
+            "t": [0.5 for q in saturation_loading]
         }
     if "bddt" in model.lower():
         return {
@@ -227,11 +231,23 @@ def get_guess_params(model, df, keyUptakes, keyPressures):
             "ku": langmuir_b,
             "m": [5 for i in saturation_loading]
         }
+    if model.lower() == "bet":
+        return {
+            "n": saturation_loading,
+            "c": langmuir_b,
+        }
+    if model.lower() == "toth td":
+        return {
+            "q": saturation_loading,
+            "b0": [b * 0.1 for b in langmuir_b],
+            "t": [0.5 for q in saturation_loading],
+            "h": h_guess
+        }
 
-def get_fit_tuples(model, guess, temp, i=0, cond=False):
+def get_fit_tuples(model, guess, temps, i=0, cond=False):
     if model.lower() == "dsl nc":
-        return ('q1', guess['q1'][i], True, 0), \
-               ('q2', guess['q2'][i], True, 0), \
+        return ('q1', guess['q1'][i], True, 0, 1.83), \
+               ('q2', guess['q2'][i], True, 0, 10), \
                ('b1', guess['b1'][i], True, 0), \
                ('b2', guess['b2'][i], True, 0),
 
@@ -256,6 +272,13 @@ def get_fit_tuples(model, guess, temp, i=0, cond=False):
                ('b', guess['b'][i], True, 0), \
                ('t', guess['t'][i], True, 0)
 
+    if model.lower() == "toth td":
+        return ('temp', temps[i], False), \
+               ('q', guess['q'][i], True, 0), \
+               ('b0', guess['b0'][i], True, 0), \
+               ('t', guess['t'][i], True, 0), \
+               ('h', guess['h'][i], True)
+
     if model.lower() == "bddt":
         if cond is True:
             c_con = ('c', guess['c'][i], True, 0, 1)
@@ -274,12 +297,16 @@ def get_fit_tuples(model, guess, temp, i=0, cond=False):
                ('m', guess['m'][i], True, 0)
 
     if model.lower() == "mdr td":
-        return ('t', temp[i], False), \
+        return ('t', temps[i], False), \
                ('n0', guess['n0'][i], True, 0), \
                ('n1', guess['n1'][i], True, 0), \
                ('a', guess['a'][i], True, 0), \
                ('b', guess['b'][i], True, 0), \
                ('e', guess['e'][i], True)
+
+    if model.lower() == "bet":
+        return ('n', guess['n'][i], True, 0), \
+               ('c', guess['c'][i], True, 0),
 
 _model_param_lists = {
     'mdr': ['n0', 'n1', 'a', 'c'],
@@ -290,8 +317,10 @@ _model_param_lists = {
     'gab': ['n', 'ka', 'ca'],
     'sips': ['q', 'b', 'n'],
     'toth': ['q', 'b', 't'],
+    'toth td': ['q', 'b0', 't', 'h'],
     'bddt': ['c', 'n', 'g', 'q'],
-    'dodo': ['ns', 'kf', 'nu', 'ku', 'm']
+    'dodo': ['ns', 'kf', 'nu', 'ku', 'm'],
+    'bet': ['n', 'c']
 }
 
 _model_df_titles = {
@@ -303,11 +332,13 @@ _model_df_titles = {
     'gab': ['n (mmol/g)', 'ka (H2O activity coeff.)', 'ca (GAB const.)'],
     'sips': ['q (mmol/g)', 'b (1/bar)', 'n (heterogeneity parameter)'],
     'toth': ['q (mmol/g)', 'b (1/bar)', 't (heterogeneity parameter)'],
+    'toth td': ['q (mmol/g)', 'b0 (1/bar)', 't (heterogenity parameter)', 'h (J/mol)'],
     'bddt': ['c (BET const.)', 'n (layers)', 'g', 'q (mmol/g)'],
-    'dodo': ['ns (mmol/g)', 'kf', 'nμ (mmol/g)', 'kμ', 'm']
+    'dodo': ['ns (mmol/g)', 'kf', 'nμ (mmol/g)', 'kμ', 'm'],
+    'bet': ['n (mmol/g)', 'c']
 }
 
-_temp_dep_models = ['langmuir td', 'mdr td']
+_temp_dep_models = ['langmuir td', 'mdr td', 'toth td']
 
 def plot_settings(log, model="default", rel_pres=False):
     if model.lower() == "langmuir linear 1":
