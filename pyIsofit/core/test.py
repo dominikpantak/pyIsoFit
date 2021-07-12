@@ -1,7 +1,8 @@
 from FitPackage import IsothermFit
 import pandas as pd
 
-df2 = pd.read_csv('Computational Data (EPFL) N2.csv')
+
+df2 = pd.read_csv('../Datasets for testing/Computational Data (EPFL) N2.csv')
 compname = 'N2'
 temps = [10, 40, 100]
 meth = 'tnc'

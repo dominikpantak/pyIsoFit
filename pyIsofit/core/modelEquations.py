@@ -169,3 +169,5 @@ def r2hen(pressures, uptake, f, hen):
 def mse(x, y, f, c):
     y_predicted = f(x, *c)
     return np.square(np.subtract(y, y_predicted)).mean()
+
+

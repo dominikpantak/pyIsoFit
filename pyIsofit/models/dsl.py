@@ -1,16 +1,23 @@
-from re import A
+
 import pandas as pd
-from matplotlib import pyplot as plt
 import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
-from IPython.display import display
-from modelEquations import *
-from utilityFunctions import *
-from utilityFunctions import _temp_dep_models
 
-def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
-            meth='tnc', guess=None, hentol=0.9999, show_hen=False, henry_off=False):
+from pyIsofit.core.modelEquations import langmuir1, dsl, dslTD, langmuirTD, r, bold, unbold, r2, mse
+from pyIsofit.core.model_definitions import get_guess_params
+from pyIsofit.core.utilityFunctions import henry_approx
+
+def dsl_fit(df_list: list,
+            key_pressures: list,
+            key_uptakes: list,
+            temps: list,
+            compnames: list,
+            meth: str,
+            guess: list,
+            hentol: float,
+            show_hen: bool,
+            henry_off: bool):
     # Here is the step procedure mentioned above
     # The outer class controls which step is being carried out
     # The first step is to find the initial q1, q2, b1, b2 values with the henry constraint se
@@ -19,11 +26,11 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
         gmod = Model(dsl, nan_policy='omit')
         pars1 = Parameters()
 
-        pars1.add('q1', value=guess['q1'][0], min=0, max=20)
-        pars1.add('q2', value=guess['q2'][0], min=0, max=20)
-        pars1.add('b2', value=guess['b2'][0], min=0, max=1000)
+        pars1.add('q1', value=guess['q1'][0], min=0)
+        pars1.add('q2', value=guess['q2'][0], min=0)
+        pars1.add('b2', value=guess['b2'][0], min=0)
         if henry_off:
-            pars1.add('b1', value=guess['b1'][0], min=0, max=1000)
+            pars1.add('b1', value=guess['b1'][0], min=0)
         else:
             pars1.add('delta', value=henry_constants[0], vary=False)
             pars1.add('b1', expr='(delta-q2*b2)/q1')  # KH = b1*q1 + b2*q2
@@ -193,7 +200,7 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
                                           'qmax2 (mmol/g)', 'h1 (J/mol)', 'h2 (J/mol)', 'b01 (1/bar)', 'b02 (1/bar)',
                                           'R sq', 'mse'])
 
-        display(pd.DataFrame(df_result))
+        print(pd.DataFrame(df_result))
 
         print(bold + "===============================================================================")
         print(bold + "===============================================================================")
@@ -206,8 +213,8 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     params_dict = {}
     i = 0
     for df in df_list:
-        x = [df[keyPressures[j]].values for j in range(len(keyPressures))]
-        y = [df[keyUptakes[j]].values for j in range(len(keyPressures))]
+        x = [df[key_pressures[j]].values for j in range(len(key_pressures))]
+        y = [df[key_uptakes[j]].values for j in range(len(key_pressures))]
         df_dict[compnames[i]] = x, y
         del x, y
         i += 1
@@ -216,8 +223,8 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
     i_high = 0
     qhigh = 0
     if guess is None:
-        guess = [get_guess_params("DSL", df_list[i], keyUptakes, keyPressures) for i in range(len(df_list))]
-    henry_const_lst = [henry_approx(df_list[i], keyPressures, keyUptakes, show_hen, hentol, compnames[i])[0] for i in
+        guess = [get_guess_params("DSL", df_list[i], key_uptakes, key_pressures) for i in range(len(df_list))]
+    henry_const_lst = [henry_approx(df_list[i], key_pressures, key_uptakes, show_hen, hentol, compnames[i])[0] for i in
                        range(len(df_list))]
 
     for i in range(len(compnames)):
@@ -257,230 +264,3 @@ def dsl_fit(df_list, keyPressures, keyUptakes, temps=None, compnames=None,
             params_dict[compnames[i]] = step3_compB[2]
 
     return df_dict, results_dict, df_res_dict, params_dict
-
-
-def langmuir_fit(gmod, x, y, guess, cond, henry_constants, meth, henry_off):
-    if cond:
-        print("Constraint 1: q sat = q_init for all temp")
-        if not henry_off:
-            print("Constraint 2: qsat*b = Henry constant for all temp")
-
-    q_guess = guess['q']
-    b_guess = guess['b']
-    params = []
-    values_dict = {}
-
-    for i in range(len(x)):
-        pars = Parameters()
-
-        # Creating intermediate parameter delta that will fix KH = b*q
-
-        if cond:
-            if i == 0:
-                pars.add('q', value=q_guess[0], min=0)
-            else:
-                pars.add('q', value=q_fix, min=q_fix, max=q_fix + 0.001)
-
-            if henry_off:
-                pars.add('b', value=b_guess[i], min=0)
-            else:
-                pars.add('delta', value=henry_constants[i], vary=False)
-                pars.add('b', expr='delta/q')  # KH = b*q
-        else:
-            pars.add('q', value=q_guess[i], min=0)
-            pars.add('b', value=b_guess[i], min=0)
-
-        results = gmod.fit(y[i], pars, x=x[i], method=meth)
-        params.append(results)
-        values_dict[i] = results.values
-        if i == 0 and cond is True:
-            q_fix = results.values['q']  # This only gets applied if cond=True
-
-        del results, pars
-
-    return params, values_dict
-
-
-def langmuirTD_fit(gmod, x, y, guess, temps, cond, meth):
-    q_guess = guess['q']
-    h_guess = guess['h']
-    b0_guess = guess['b0']
-
-    values_dict = {}
-    params = []
-
-    for i in range(len(x)):
-        pars = Parameters()
-        pars.add('t', value=temps[i], vary=False)
-        if cond:
-            if i == 0:
-                pars.add('q', value=q_guess[0], min=0)
-            else:
-                pars.add('q', value=q_fix, min=q_fix, max=q_fix + 0.001)
-
-        else:
-            pars.add('q', value=q_guess[i], min=0)
-
-        pars.add('h', value=h_guess[i])
-        pars.add('b0', value=b0_guess[i], min=0)
-
-        results = gmod.fit(y[i], pars, x=x[i], method=meth)
-        params.append(results)
-        values_dict[i] = results.values
-        if i == 0 and cond is True:
-            q_fix = results.values['q']  # This only gets applied if cond=True
-
-        del results, pars
-
-    return params, values_dict
-
-
-def heat_calc(model, temps, param_dict, x):
-    site = ['A', 'B', 'C']
-    t = [1 / i for i in temps]
-
-    def isosteric_heat(t, yparams, j=0):
-        ln_b = np.array([np.log(i) for i in yparams])
-        mh, bh, rh, ph, sterrh = stats.linregress(t, ln_b)
-        h = -0.001 * mh * r
-
-        print("_______________________________________________________________________")
-        print("Heat of adsorption for site " + site[j] + ":" + str(round(h, 2)) + " kJ/mol. \n" +
-              "R sq of Van't Hoff: " + str(round(rh, 4)))
-
-    if model.lower() == "gab":
-        xT = []
-        h = []
-        for i in range(len(x[0])):
-            xTT = []
-            for p in x:
-                xTT.append(p[i])
-            xT.append(xTT)
-        for xi in xT:
-            ln_x = [np.log(i) for i in xi]
-            m, b, r2h, p, sterr = stats.linregress(t, ln_x)
-            h.append(-0.001 * m * r)
-
-        avgh = np.average(h)
-        sterr = (1.96 * np.std(h) / (len(h)) ** 0.5)
-        print("ΔH_is: " + str(round(avgh, 2)) + " (∓ " + str(round(sterr, 2)) + ") kJ/mol. ")
-
-    elif model.lower() not in _temp_dep_models:
-        yparams = param_dict['b (1/bar)']
-        isosteric_heat(t, yparams)
-
-    elif model.lower() == "dsl nc":
-        yparams = [param_dict['b1 (1/bar)'], param_dict['b2 (1/bar)']]
-        for i in range(2):
-            isosteric_heat(t, yparams[i], i)
-    else:
-        return None
-
-
-def ext_dsl(param_dict, temps, x, comps, yfracs):
-    if len(comps) < 2:
-        print("Enter 2 components or more to use extended models")
-        return None
-
-    def vant_hoff(b0, h, t):
-        return b0 * np.exp(-h / (r * t) )
-
-    def calc_q(x, num_a, num_b, den_a, den_b):
-        e1 = num_a * x / (1 + den_a * x )
-        e2 = num_b * x / (1 + den_b * x )
-        return e1 + e2
-
-    params_sorted = {}
-    """ First we sort the input data and calculate b1 and b2 from the heats of 
-    adsorption and temperatures"""
-    for i in range(len(comps)):
-        params = param_dict[comps[i]]
-        x_comp = x[i]
-        b1_list_in = []
-        b2_list_in = []
-
-        for j in range(len(x_comp)):
-            b1_list_in.append(vant_hoff(params['b01'][j], params['h1'][j], temps[j]))
-            b2_list_in.append(vant_hoff(params['b02'][j], params['h2'][j], temps[j]))
-        params_sorted[comps[i]] = {'q1': params['q1'],
-                                   'q2': params['q2'],
-                                   'b1': b1_list_in,
-                                   'b2': b2_list_in,
-                                   'y': yfracs[i]}
-
-    """Input data has now been sorted and now the numerators of the two terms in the extended dsl equation 
-    can be worked out. The aim here is to simplify the extended dsl equation into the following form:
-    
-    q* = num(siteA) * x / (1 + den(siteA) * x ) + num(siteB) * x / (1 + den(siteB) * x )
-    
-    """
-
-    num_dict = {}
-    for i in range(len(comps)):
-        params = params_sorted[comps[i]]
-        num_a_in = []
-        num_b_in = []
-        for j in range(len(temps)):
-            num_a_in.append(params['q1'][j] * params['b1'][j] * params['y'])
-            num_b_in.append(params['q2'][j] * params['b2'][j] * params['y'])
-
-        num_dict[comps[i]] = {'a': num_a_in, 'b': num_b_in}
-
-    """ The above sorts the numerator of site A and B into a dictionary for its corresponding
-    component.
-    
-    The next part is calculating the denominators - this is a bit more tricky as we need to add
-    more terms depending on the number of components inputted. The workaround for this was to
-    create a list of the same length as there are the number of temperatures. Within this list
-    there are inner lists of the same length as the number of components. This way, we are allocating
-    parameters in the following way for example:
-    
-    b1 (at 20 C) = 4.2 for component A, 2.4 for component B ... x for component X 
-    
-    we also do this for b2
-    """
-
-    b1_list = [[] for _ in range(len(temps))]
-    b2_list = [[] for _ in range(len(temps))]
-    for i in range(len(temps)):
-        for j in range(len(comps)):
-            params = params_sorted[comps[j]]
-            b1_list[i].append(params['b1'][i])
-            b2_list[i].append(params['b2'][i])
-
-    den_a_list = []
-    den_b_list = []
-    for i in range(len(temps)):
-        b1_in = b1_list[i]
-        b2_in = b2_list[i]
-        den_a = 0
-        den_b = 0
-        for j in range(len(b1_in)):
-            den_a += b1_in[j] * yfracs[j]
-            den_b += b2_in[j] * yfracs[j]
-        den_a_list.append(den_a)
-        den_b_list.append(den_b)
-
-    """Above we are iterating over the list of lists mentioned previously with the goal of getting:
-    (b1A * yA) + (b1B * yB) ... (b1X * yX)
-    
-    relating to the denominators of the extended dsl equation:
-    
-    1 + (b1A * yA * P) + (b1B * yB * P) = 1 + (b1A * yA + b1B * yB) * P
-    
-    """
-
-    q_dict = {}
-    for i in range(len(comps)):
-        x_comp = x[i]
-        numer = num_dict[comps[i]]
-        num_a = numer['a']
-        num_b = numer['b']
-        q_list = []
-        for j in range(len(temps)):
-            q = calc_q(np.array(x_comp[j]), num_a[j], num_b[j], den_a_list[j], den_b_list[j])
-            q_list.append(q)
-
-        q_dict[comps[i]] = q_list
-
-    return q_dict
