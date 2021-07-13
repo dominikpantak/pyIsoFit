@@ -1,8 +1,9 @@
 from lmfit import Model, Parameters
-from pyIsofit.core.utilityFunctions import get_model
+from pyIsofit.core.model_definitions import get_fit_tuples, _MODEL_FUNCTIONS
 
-def generic_fit(model, x, y, guess, temps, cond, meth, cust_bounds):
-    isotherm = get_model(model)
+
+def generic_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report):
+    isotherm = _MODEL_FUNCTIONS[model]
     gmod = Model(isotherm)
 
     params = []
@@ -15,6 +16,9 @@ def generic_fit(model, x, y, guess, temps, cond, meth, cust_bounds):
 
         params.append(results)
         values_dict[i] = results.values
+        if fit_report:
+            print("\n\n\n---- FIT REPORT FOR DATASET AT {temp} K -----".format(temp=temps[i]))
+            print(results.fit_report())
         del results, pars
 
     return params, values_dict

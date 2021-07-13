@@ -1,57 +1,25 @@
 from utilityFunctions import *
 
-def get_model(model):
-    if model.lower() == "langmuir":
-        return langmuir1
-    if model.lower() == "langmuir linear 1":
-        return langmuirlin1
-    if model.lower() == "langmuir linear 2":
-        return langmuirlin2
-    if model.lower() == "langmuir td":
-        return langmuirTD
-    if model.lower() == "dsl":
-        return dsl
-    if model.lower() == "gab":
-        return gab
-    if model.lower() == "mdr":
-        return mdr
-    if model.lower() == "mdr td":
-        return mdrtd
-    if model.lower() == "sips":
-        return sips
-    if model.lower() == "toth":
-        return toth
-    if model.lower() == "bddt 2n" or model.lower() == "bddt":
-        return bddt1
-    if model.lower() == "bddt 2n-1":
-        return bddt2
-    if model.lower() == "dodo":
-        return dodo
-    if model.lower() == "bet":
-        return bet
-    if model.lower() == "toth td":
-        return tothTD
-
 def get_guess_params(model, df, key_uptakes, key_pressures):
     saturation_loading = [1.1 * df[key_uptakes[i]].max() for i in range(len(key_pressures))]
     henry_lim = henry_approx(df, key_pressures, key_uptakes, False)[0]
     langmuir_b = [kh / qsat for (kh, qsat) in zip(henry_lim, saturation_loading)]
     h_guess = [-5000 for i in range(len(key_pressures))]
 
-    if "langmuir" in model.lower() and model.lower() != "langmuir td":
+    if "langmuir" in model and model != "langmuir td":
         return {
             "b": langmuir_b,
             "q": saturation_loading
         }
 
-    if model.lower() == "langmuir td":
+    if model == "langmuir td":
         return {
             "b0": langmuir_b,
             "q": saturation_loading,
             "h": h_guess
         }
 
-    if model.lower() == "dsl" or model.lower() == "dsl nc":
+    if model == "dsl" or model == "dsl nc":
         return {
             "q1": [0.5 * q for q in saturation_loading],
             "b1": [0.4 * b for b in langmuir_b],
@@ -59,21 +27,21 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "b2": [0.6 * b for b in langmuir_b]
         }
 
-    if model.lower() == "gab":
+    if model == "gab":
         return {
             "n": [0.2 * q for q in saturation_loading],
             "ka": [1.1 * b for b in langmuir_b],
             "ca": [0.1 * b for b in langmuir_b]
         }
 
-    if model.lower() == "mdr":
+    if model == "mdr":
         return {
             "n0": saturation_loading,
             "n1": langmuir_b,
             "a": [0.1 * b for b in langmuir_b],
             "c": [10 * b for b in langmuir_b]
         }
-    if model.lower() == "mdr td":
+    if model == "mdr td":
         return {
             "n0": saturation_loading,
             "n1": langmuir_b,
@@ -81,26 +49,26 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "b": [10 * b for b in langmuir_b],
             "e": [-1000 for i in saturation_loading]
         }
-    if model.lower() == "sips":
+    if model == "sips":
         return {
             "q": saturation_loading,
             "b": langmuir_b,
             "n": [1 for q in saturation_loading]
         }
-    if model.lower() == "toth":
+    if model == "toth":
         return {
             "q": saturation_loading,
             "b": langmuir_b,
             "t": [0.5 for q in saturation_loading]
         }
-    if "bddt" in model.lower():
+    if "bddt" in model:
         return {
             "c": langmuir_b,
             "n": [10 for i in saturation_loading],
             "g": [100 for i in saturation_loading],
             "q": [q * 0.5 for q in saturation_loading]
         }
-    if model.lower() == "dodo":
+    if model == "dodo":
         return {
             "ns": saturation_loading,
             "kf": langmuir_b,
@@ -108,12 +76,12 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "ku": langmuir_b,
             "m": [5 for i in saturation_loading]
         }
-    if model.lower() == "bet":
+    if model == "bet":
         return {
             "n": saturation_loading,
             "c": langmuir_b,
         }
-    if model.lower() == "toth td":
+    if model == "toth td":
         return {
             "q": saturation_loading,
             "b0": [b * 0.1 for b in langmuir_b],
@@ -124,44 +92,44 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
 
 def get_fit_tuples(model, guess, temps, i=0, cond=False, cust_bounds=None):
     if cust_bounds is None:
-        bounds = _MODEL_BOUNDS[model.lower()]
+        bounds = _MODEL_BOUNDS[model]
     else:
         bounds = cust_bounds
-    if model.lower() == "dsl nc":
+    if model == "dsl nc":
         return ('q1', guess['q1'][i], True, *bounds['q1']), \
                ('q2', guess['q2'][i], True, *bounds['q2']), \
                ('b1', guess['b1'][i], True, *bounds['b1']), \
                ('b2', guess['b2'][i], True, *bounds['b2']),
 
-    if model.lower() == "gab":
+    if model == "gab":
         return ('n', guess['n'][i], True, *bounds['n']), \
                ('ka', guess['ka'][i], True, *bounds['ka']), \
                ('ca', guess['ca'][i], True, *bounds['ca'])
 
-    if model.lower() == "mdr":
+    if model == "mdr":
         return ('n0', guess['n0'][i], True, *bounds['n0']), \
                ('n1', guess['n1'][i], True, *bounds['n1']), \
                ('a', guess['a'][i], True, *bounds['a']), \
                ('c', guess['c'][i], True, *bounds['c'])
 
-    if model.lower() == "sips":
+    if model == "sips":
         return ('q', guess['q'][i], True, *bounds['q']), \
                ('b', guess['b'][i], True, *bounds['b']), \
                ('n', guess['n'][i], True, *bounds['n'])
 
-    if model.lower() == "toth":
+    if model == "toth":
         return ('q', guess['q'][i], True, *bounds['q']), \
                ('b', guess['b'][i], True, *bounds['b']), \
                ('t', guess['t'][i], True, *bounds['t'])
 
-    if model.lower() == "toth td":
+    if model == "toth td":
         return ('temp', temps[i], False), \
                ('q', guess['q'][i], True, *bounds['q']), \
                ('b0', guess['b0'][i], True, *bounds['b0']), \
                ('t', guess['t'][i], True, *bounds['t']), \
                ('h', guess['h'][i], True, *bounds['h'])
 
-    if model.lower() == "bddt":
+    if model == "bddt":
         if cond is True:
             c_con = ('c', guess['c'][i], True, 0, 1)
         else:
@@ -171,14 +139,14 @@ def get_fit_tuples(model, guess, temps, i=0, cond=False, cust_bounds=None):
                ('g', guess['g'][i], True, *bounds['g']), \
                ('q', guess['q'][i], True, *bounds['q'])
 
-    if model.lower() == "dodo":
+    if model == "dodo":
         return ('ns', guess['ns'][i], True, *bounds['ns']), \
                ('kf', guess['kf'][i], True, *bounds['kf']), \
                ('nu', guess['nu'][i], True, *bounds['ns']), \
                ('ku', guess['ku'][i], True, *bounds['ku']), \
                ('m', guess['m'][i], True, *bounds['m'])
 
-    if model.lower() == "mdr td":
+    if model == "mdr td":
         return ('t', temps[i], False), \
                ('n0', guess['n0'][i], True, *bounds['n0']), \
                ('n1', guess['n1'][i], True, *bounds['n1']), \
@@ -186,7 +154,7 @@ def get_fit_tuples(model, guess, temps, i=0, cond=False, cust_bounds=None):
                ('b', guess['b'][i], True, *bounds['b']), \
                ('e', guess['e'][i], True, *bounds['e'])
 
-    if model.lower() == "bet":
+    if model == "bet":
         return ('n', guess['n'][i], True, *bounds['n']), \
                ('c', guess['c'][i], True, *bounds['c']),
 
@@ -279,5 +247,26 @@ _MODEL_BOUNDS = {
         'c': (0, None)
     }
 }
+
+_MODEL_FUNCTIONS = {
+    'langmuir': langmuir1,
+    'langmuir linear 1': langmuirlin1,
+    'langmuir linear 2': langmuirlin2,
+    'langmuir td': langmuirTD,
+    'dsl': dsl,
+    'dsl nc': dsl,
+    'gab': gab,
+    'mdr': mdr,
+    'mdrtd': mdrtd,
+    'sips': sips,
+    'toth': toth,
+    'bddt 2n': bddt1,
+    'bddt 2n-1': bddt2,
+    'bddt': bddt1,
+    'dodo': dodo,
+    'bet': bet,
+    'toth td': tothTD
+}
+
 
 _TEMP_DEP_MODELS = ['langmuir td', 'mdr td', 'toth td']

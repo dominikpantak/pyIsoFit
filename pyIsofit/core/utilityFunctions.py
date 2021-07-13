@@ -4,7 +4,7 @@ import pandas as pd
 from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy import stats
-from pyIsofit.core.model_definitions import _TEMP_DEP_MODELS, _MODEL_DF_TITLES, _MODEL_PARAM_LISTS
+from model_definitions import _TEMP_DEP_MODELS, _MODEL_DF_TITLES, _MODEL_PARAM_LISTS
 
 def get_xy(df, keyPressures, keyUptakes, model, rel_pres):
     # Reading data from dataframe with respect to provided keys
@@ -28,12 +28,12 @@ def get_xy(df, keyPressures, keyUptakes, model, rel_pres):
     x2 = x_filtr
     y2 = y_filtr
 
-    if model.lower() == "langmuir linear 1":
+    if model == "langmuir linear 1":
         for i in range(len(keyPressures)):
             x.append(np.array([1 / p for p in x2[i]]))
             y.append(np.array([1 / q for q in y2[i]]))
 
-    elif model.lower() == "langmuir linear 2":
+    elif model == "langmuir linear 2":
         for i in range(len(keyPressures)):
             y.append(np.array([p / q for (p, q) in zip(x2[i], y2[i])]))
             x.append(x2[i])
@@ -136,8 +136,8 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
             henry_constants.append(hen_ilst[rsqidx])
             henry_limits.append(x_henry[henidx])
             henry_rsq.append(rsq_ilst[rsqidx])
-            # sometimes data may not have a good henry region fit, which could abort the above while loop after the first
-            # iteration. This piece of code warns the user of this
+            # sometimes data may not have a good henry region fit, which could abort the above while loop after the
+            # first iteration. This piece of code warns the user of this
         except IndexError:
             print("ERROR - Please increase henry region value of index " + str(i))
 
@@ -156,23 +156,23 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
 
     if display_hen:
         print(bold + '\nHenry regime for component ' + compname + ':' + unbold)
-        if errHen != []:
+        if errHen:
             print(unbold + 'WARNING: Henry region for dataset(s) ' + ', '.join(
                 errHen) + ' were found to be made up of less than 4 points.')
             print('         This may affect accuracy of results.')
             print(
                 '         Henry region tolerance may be entered after log plot toggle parameter (default = 0.9999).\n')
 
-        display(pd.DataFrame(df_henry))
+        print(pd.DataFrame(df_henry))
 
     return henry_constants, df_henry, xy_dict
 
 def plot_settings(log, model="default", rel_pres=False):
-    if model.lower() == "langmuir linear 1":
+    if model == "langmuir linear 1":
         xtitle = '1/Pressure [1/bar]'
         ytitle = '1/Uptake [g/mmol]'
 
-    elif model.lower() == "langmuir linear 2":
+    elif model == "langmuir linear 2":
         xtitle = 'Pressure [bar]'
         ytitle = 'Pressure/uptake [(bar mmol)/g]'
 
@@ -209,13 +209,13 @@ def get_subplot_size(x, i):
 def get_sorted_results(values_dict, model, temps):
     final_results_dict = {'T (K)': temps}
 
-    param_keys = _MODEL_PARAM_LISTS[model.lower()]
+    param_keys = _MODEL_PARAM_LISTS[model]
     params_list = [[] for _ in range(len(param_keys))]
     for i in range(len(values_dict)):
         for j in range(len(param_keys)):
             params_list[j].append(values_dict[i][param_keys[j]])
 
-    df_keys = _MODEL_DF_TITLES[model.lower()]
+    df_keys = _MODEL_DF_TITLES[model]
 
     for i in range(len(df_keys)):
         final_results_dict[df_keys[i]] = params_list[i]
@@ -224,7 +224,7 @@ def get_sorted_results(values_dict, model, temps):
     for i in range(len(temps)):
         values = values_dict[i]
         c_innerlst = []
-        if model.lower() in _TEMP_DEP_MODELS:
+        if model in _TEMP_DEP_MODELS:
             c_innerlst.append(temps[i])
         for key in param_keys:
             c_innerlst.append(values[key])
@@ -245,7 +245,7 @@ def heat_calc(model, temps, param_dict, x):
         print("Heat of adsorption for site " + site[j] + ":" + str(round(h, 2)) + " kJ/mol. \n" +
               "R sq of Van't Hoff: " + str(round(rh, 4)))
 
-    if model.lower() == "gab":
+    if model == "gab":
         xT = []
         h = []
         for i in range(len(x[0])):
@@ -262,11 +262,11 @@ def heat_calc(model, temps, param_dict, x):
         sterr = (1.96 * np.std(h) / (len(h)) ** 0.5)
         print("ΔH_is: " + str(round(avgh, 2)) + " (∓ " + str(round(sterr, 2)) + ") kJ/mol. ")
 
-    elif model.lower() not in _TEMP_DEP_MODELS:
+    elif "langmuir" in model and model != "langmuir td":
         yparams = param_dict['b (1/bar)']
         isosteric_heat(t, yparams)
 
-    elif model.lower() == "dsl nc":
+    elif model == "dsl nc":
         yparams = [param_dict['b1 (1/bar)'], param_dict['b2 (1/bar)']]
         for i in range(2):
             isosteric_heat(t, yparams[i], i)

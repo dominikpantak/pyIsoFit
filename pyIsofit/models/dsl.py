@@ -17,7 +17,8 @@ def dsl_fit(df_list: list,
             guess: list,
             hentol: float,
             show_hen: bool,
-            henry_off: bool):
+            henry_off: bool
+            ):
     # Here is the step procedure mentioned above
     # The outer class controls which step is being carried out
     # The first step is to find the initial q1, q2, b1, b2 values with the henry constraint se
@@ -101,7 +102,7 @@ def dsl_fit(df_list: list,
         b2 = [param[3] for param in c_list]
 
         # Finding heat of adsorption for both sites
-        T = np.array([1 / (temp + 273) for temp in temps])
+        T = np.array([1 / temp for temp in temps])
         ln_b1 = np.array([np.log(i) for i in b1])
         ln_b2 = np.array([np.log(i) for i in b2])
         mH1, bH1, rH1, pH1, sterrH1 = stats.linregress(T, ln_b1)
@@ -223,7 +224,7 @@ def dsl_fit(df_list: list,
     i_high = 0
     qhigh = 0
     if guess is None:
-        guess = [get_guess_params("DSL", df_list[i], key_uptakes, key_pressures) for i in range(len(df_list))]
+        guess = [get_guess_params("dsl", df_list[i], key_uptakes, key_pressures) for i in range(len(df_list))]
     henry_const_lst = [henry_approx(df_list[i], key_pressures, key_uptakes, show_hen, hentol, compnames[i])[0] for i in
                        range(len(df_list))]
 
