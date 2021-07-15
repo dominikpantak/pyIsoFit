@@ -236,6 +236,8 @@ def get_sorted_results(values_dict, model, temps):
     return final_results_dict, c_list
 
 
+_models_with_b = ['langmuir', 'linear langmuir 1', 'linear langmuir 2', 'sips', 'toth']
+
 def heat_calc(model, temps, param_dict, x):
     site = ['A', 'B', 'C']
     t = [1 / i for i in temps]
@@ -266,7 +268,7 @@ def heat_calc(model, temps, param_dict, x):
         sterr = (1.96 * np.std(h) / (len(h)) ** 0.5)
         print("ΔH_is: " + str(round(avgh, 2)) + " (∓ " + str(round(sterr, 2)) + ") kJ/mol. ")
 
-    elif "langmuir" in model and model != "langmuir td":
+    elif model in _models_with_b:
         yparams = param_dict['b (1/bar)']
         isosteric_heat(t, yparams)
 
