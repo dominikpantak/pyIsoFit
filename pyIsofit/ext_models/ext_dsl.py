@@ -1,11 +1,50 @@
 import numpy as np
-from pyIsofit.core.modelEquations import r
+from pyIsofit.core.model_equations import r
 
 def ext_dsl(param_dict, temps, x, comps, yfracs):
-    if len(comps) < 2:
-        print("Enter 2 components or more to use extended models")
-        return None
+    """
 
+    :param param_dict:
+    :param temps:
+    :param x:
+    :param comps:
+    :param yfracs:
+    :return:
+
+    First we sort the input data and calculate b1 and b2 from the heats of
+    adsorption and temperatures
+
+    Input data has now been sorted and now the numerators of the two terms in the extended dsl equation
+    can be worked out. The aim here is to simplify the extended dsl equation into the following form:
+
+    q* = num(siteA) * x / (1 + den(siteA) * x ) + num(siteB) * x / (1 + den(siteB) * x )
+
+    The above sorts the numerator of site A and B into a dictionary for its corresponding
+    component.
+
+
+
+    The next part is calculating the denominators - this is a bit more tricky as we need to add
+    more terms depending on the number of components inputted. The workaround for this was to
+    create a list of the same length as there are the number of temperatures. Within this list
+    there are inner lists of the same length as the number of components. This way, we are allocating
+    parameters in the following way for example:
+
+    b1 (at 20 C) = 4.2 for component A, 2.4 for component B ... x for component X
+
+    we also do this for b2
+
+
+
+    Above we are iterating over the list of lists mentioned previously with the goal of getting:
+    (b1A * yA) + (b1B * yB) ... (b1X * yX)
+
+    relating to the denominators of the extended dsl equation:
+
+    1 + (b1A * yA * P) + (b1B * yB * P) = 1 + (b1A * yA + b1B * yB) * P
+
+
+    """
     def vant_hoff(b0, h, t):
         return b0 * np.exp(-h / (r * t))
 
@@ -15,8 +54,8 @@ def ext_dsl(param_dict, temps, x, comps, yfracs):
         return e1 + e2
 
     params_sorted = {}
-    """ First we sort the input data and calculate b1 and b2 from the heats of 
-    adsorption and temperatures"""
+
+    # Step 1
     for i in range(len(comps)):
         params = param_dict[comps[i]]
         x_comp = x[i]
@@ -32,13 +71,7 @@ def ext_dsl(param_dict, temps, x, comps, yfracs):
                                    'b2': b2_list_in,
                                    'y': yfracs[i]}
 
-    """Input data has now been sorted and now the numerators of the two terms in the extended dsl equation 
-    can be worked out. The aim here is to simplify the extended dsl equation into the following form:
-
-    q* = num(siteA) * x / (1 + den(siteA) * x ) + num(siteB) * x / (1 + den(siteB) * x )
-
-    """
-
+    # Step 2
     num_dict = {}
     for i in range(len(comps)):
         params = params_sorted[comps[i]]
@@ -49,20 +82,6 @@ def ext_dsl(param_dict, temps, x, comps, yfracs):
             num_b_in.append(params['q2'][j] * params['b2'][j] * params['y'])
 
         num_dict[comps[i]] = {'a': num_a_in, 'b': num_b_in}
-
-    """ The above sorts the numerator of site A and B into a dictionary for its corresponding
-    component.
-
-    The next part is calculating the denominators - this is a bit more tricky as we need to add
-    more terms depending on the number of components inputted. The workaround for this was to
-    create a list of the same length as there are the number of temperatures. Within this list
-    there are inner lists of the same length as the number of components. This way, we are allocating
-    parameters in the following way for example:
-
-    b1 (at 20 C) = 4.2 for component A, 2.4 for component B ... x for component X 
-
-    we also do this for b2
-    """
 
     b1_list = [[] for _ in range(len(temps))]
     b2_list = [[] for _ in range(len(temps))]
@@ -85,15 +104,7 @@ def ext_dsl(param_dict, temps, x, comps, yfracs):
         den_a_list.append(den_a)
         den_b_list.append(den_b)
 
-    """Above we are iterating over the list of lists mentioned previously with the goal of getting:
-    (b1A * yA) + (b1B * yB) ... (b1X * yX)
-
-    relating to the denominators of the extended dsl equation:
-
-    1 + (b1A * yA * P) + (b1B * yB * P) = 1 + (b1A * yA + b1B * yB) * P
-
-    """
-
+    # Step 3
     q_dict = {}
     for i in range(len(comps)):
         x_comp = x[i]

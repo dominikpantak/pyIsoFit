@@ -1,11 +1,15 @@
 import pandas as pd
-
-from pyIsofit.core.model_definitions import get_guess_params, _MODEL_FUNCTIONS
+import numpy as np
+from matplotlib import pyplot as plt
+from pyIsofit.core.model_fit_def import get_guess_params
+from pyIsofit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
 from pyIsofit.ext_models.ext_dsl import ext_dsl
 from pyIsofit.models.dsl import dsl_fit
 from pyIsofit.models.langmuir import langmuir_fit, langmuirTD_fit
 from pyIsofit.models.generic import generic_fit
-from utilityFunctions import *
+from pyIsofit.core.utility_functions import henry_approx, get_sorted_results, get_xy, heat_calc, plot_settings, \
+    get_subplot_size
+from pyIsofit.core.model_equations import r2, mse, henry
 from pyIsofit.core.exceptions import *
 import logging
 
@@ -15,7 +19,7 @@ colours = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:purple', 'tab:brown'
 
 _MODELS = ['mdr', 'mdr td', 'langmuir', 'langmuir linear 1', 'langmuir linear 2', 'langmuir td',
            'dsl nc', 'dsl', 'gab', 'sips', 'toth', 'toth td', 'bddt', 'bddt 2n', 'bddt 2n-1',
-           'dodo', 'bet']
+           'dodo', 'bet', 'henry']
 
 
 class IsothermFit:
@@ -111,7 +115,7 @@ class IsothermFit:
             self.compname = 'A'
             logger.info('No component name passed - giving component an arbitrary name.')
 
-        elif compname is None and type(compname) is list:
+        elif compname is None and type(df) is list:
             letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K']
             self.compname = [letters[i] for i in range(len(compname))]
             logger.info('No component names passed - giving components arbitrary names.')
@@ -144,6 +148,10 @@ class IsothermFit:
         self.henry_params = []
         self.rel_pres = False
 
+    def info_params(self):
+        print(f'Parameters for the {self.model} model:')
+        print(_MODEL_PARAM_LISTS[self.model])
+
     def fit(self, cond=False,
             meth='leastsq',
             show_hen=False,
@@ -157,13 +165,59 @@ class IsothermFit:
 
         """
         Fit model to data using Non-Linear Least-Squares Minimization.
-        This method is a generic fitting method for all models included in this package.
+        This method is a generic fitting method for all models included in this package using the lmfit
+        Parameters and Models class.
 
         Parameters
         ----------
+
         :param cond : bool
                 Input whether to add standardised fitting constraints to fitting procedure. These are different
-                for each fitting. Currently only works for Langmuir, Langmuir td, DSL, BDDT
+                for each fitting. Currently only works for Langmuir, Langmuir td, DSL, BDDT. Default is False
+
+        :param meth : str
+                Input the fitting algorithm which lmfit uses to fit curves. Default is 'leastsq' however lmfit includes
+                many fitting algorithms which can be inputted (https://lmfit.github.io/lmfit-py/fitting.html).
+
+        :param show_hen : bool
+                Input whether to show the henry regime of the datasets approximated by the package. This is False by
+                default.
+
+        :param hen_tol : float or list[float]
+                The henry region approximation function calculates the henry region by finding a line with the highest
+                R squared value in the low pressure region of the dataset. This is done with a default R squared
+                tolerance value (set to 0.999).
+
+                For example, if a float is inputted (a different henry tolerance) this will be the henry tolerance value
+                used by the function. i.e if 0.98 is inputted the henry regime will be across a large pressure range
+                due to the low tolerance for the R squared value of the henry model fitting.
+
+                This function also supports inputting the henry regimes manually. For this, input each henry regime for
+                each dataset as a list i.e [1.2, 2.1, ... ]
+
+        :param rel_pres : bool
+                Input whether to fit the x axis data to relative pressure instead of absolute. Default is False
+
+        :param henry_off : bool
+                Input whether to turn off the henry regime fitting constraint when using the standardised fitting
+                constraint to langmuir or dsl - this is usually done when fitting experimental data which has a messy
+                low pressure region. Default is False.
+
+        :param guess : dict
+                Input custom guess values to override the default guess values. This must be inputted as a dictionary
+                with the keys corresponding to the parameter string and the value corresponding to the list of guess
+                values corresponding to each dataset.
+                i.e for Langmuir: guess = {'q': [5, 5, 6], 'b':[100, 1000, 2000]}
+
+        :param cust_bounds : dict
+                Input custom bounds for the fitting. These are hard constraints and lmfit will fit only within these
+                minimum and maximum values. Input these as a dictionary with the keys corresponding to the parameter
+                string and the value corresponding to the list of tuples which include bounds for each dataset in the
+                format (min, max).
+                i.e for Langmuir: cust_bounds = {'q': [(4,6), (4, None), (5,10)], ... ect.}
+
+        :param fit_report : bool
+                Display a fitting report generated by lmfit for each dataset. Default is False
 
 
         Note:
@@ -207,7 +261,7 @@ class IsothermFit:
             self.df_result = df_res_dict
             self.emod_input = params_dict
 
-            return params_dict
+            return None
 
         # ! Dictionary of parameters as a starting point for data fitting
         guess = get_guess_params(self.model, self.df, self.key_uptakes, self.key_pressures)
@@ -224,7 +278,7 @@ class IsothermFit:
             henry_constants = henry_approx(self.df, self.key_pressures, self.key_uptakes, show_hen, hen_tol,
                                            self.compname)
         else:
-            henry_constants = None, None
+            henry_constants = None, None, None
 
         if self.model == "henry":
             self.henry_params = henry_constants
@@ -294,7 +348,7 @@ class IsothermFit:
             x_hen = xy_dict['x']
             y_hen = xy_dict['y']
             plot_settings(logplot)
-            for i in range(len(self.x)):
+            for i in range(len(x_hen)):
                 y_henfit = henry(x_hen[i], henry_const[i])
                 subplot_size = get_subplot_size(self.x, i)
 
@@ -343,8 +397,13 @@ class IsothermFit:
             print('File saved to directory')
 
     def plot_emod(self, yfracs, ext_model='extended dsl', logplot=False):
+        if len(self.compname) < 2:
+            raise ParameterError ("Enter 2 components or more to use extended models")
+            return None
+
         if self.model != "dsl":
-            print("""This isotherm model is not supported for extended models. Currently supported models are:
+            raise ParameterError ("""This isotherm model is not supported for extended models. Currently supported
+             models are:
             - DSL """)
             return None
 
@@ -364,34 +423,3 @@ class IsothermFit:
             plt.show()
 
         return q_dict
-
-
-# df1 = pd.read_csv('SIFSIX-3-Cu CO2.csv')
-# df1 = pd.read_csv('../Datasets for testing/Lewatit CO2.csv')
-df1 = pd.read_csv('../Datasets for testing/Computational Data (EPFL) CO2.csv')
-df2 = pd.read_csv('../Datasets for testing/Computational Data (EPFL) N2.csv')
-
-df_list = [df1, df2]
-compname = ['CO2', 'N2']
-temps = [10, 40, 100]
-# temps = [0, 20]
-# temps = [25, 45, 55]
-
-# keyUptakes = ['q1', 'q2', 'q3', 'q4']
-# keyPressures = ['p1', 'p2', 'p3', 'p4']
-
-keyUptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
-keyPressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
-
-# keyUptakes = ['q 298', 'q 318', 'q 328']
-# keyPressures = ['p 298', 'p 318', 'p 328']
-
-# keyUptakes = ['Loading [mmol/g] 25', 'Loading [mmol/g] 50', 'Loading [mmol/g] 70']
-# keyPressures = ['Pressure [bar] 25', 'Pressure [bar] 50', 'Pressure [bar] 70']
-
-
-langmuir = IsothermFit(df_list, temps, keyPressures, keyUptakes, "dsl", compname)
-langmuir.fit(cond=True, show_hen=True, meth='tnc')
-langmuir.plot(logplot=True)
-# langmuir.save()
-langmuir.plot_emod(yfracs=[0.15, 0.5, 0.35], logplot=True)

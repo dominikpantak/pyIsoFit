@@ -1,5 +1,6 @@
 from lmfit import Model, Parameters
-from pyIsofit.core.model_definitions import get_fit_tuples, _MODEL_FUNCTIONS
+from pyIsofit.core.model_fit_def import get_fit_tuples
+from pyIsofit.core.model_dicts import _MODEL_FUNCTIONS
 
 
 def generic_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report):

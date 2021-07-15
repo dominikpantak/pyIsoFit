@@ -4,9 +4,9 @@ import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
 
-from pyIsofit.core.modelEquations import langmuir1, dsl, dslTD, langmuirTD, r, bold, unbold, r2, mse
-from pyIsofit.core.model_definitions import get_guess_params
-from pyIsofit.core.utilityFunctions import henry_approx
+from pyIsofit.core.model_equations import langmuir1, dsl, dslTD, langmuirTD, r, bold, unbold, r2, mse
+from pyIsofit.core.model_fit_def import get_guess_params
+from pyIsofit.core.utility_functions import henry_approx
 
 def dsl_fit(df_list: list,
             key_pressures: list,

@@ -1,19 +1,13 @@
-
 from lmfit import Model, Parameters
-from pyIsofit.core.model_definitions import *
-from pyIsofit.core.model_definitions import _MODEL_FUNCTIONS
+from pyIsofit.core.model_fit_def import bounds_check
+from pyIsofit.core.model_dicts import _MODEL_FUNCTIONS
+
 
 def langmuir_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report, henry_constants, henry_off):
     isotherm = _MODEL_FUNCTIONS[model]
     gmod = Model(isotherm)
 
-    if cust_bounds is not None:
-        bounds = cust_bounds
-    else:
-        bounds = {
-            'q': (0, None),
-            'b': (0, None)
-        }
+    bounds = bounds_check('langmuir', cust_bounds, len(temps))
 
     if cond:
         print("Constraint 1: q sat = q_init for all temp")
@@ -32,18 +26,18 @@ def langmuir_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report,
 
         if cond:
             if i == 0:
-                pars.add('q', value=q_guess[0], min=bounds['q'][0], max=bounds['q'][1])
+                pars.add('q', value=q_guess[0], min=bounds['q'][i][0], max=bounds['q'][i][1])
             else:
                 pars.add('q', value=q_fix, min=q_fix, max=q_fix + 0.001)
 
             if henry_off:
-                pars.add('b', value=b_guess[i], min=bounds['b'][0], max=bounds['b'][1])
+                pars.add('b', value=b_guess[i], min=bounds['b'][i][0], max=bounds['b'][i][1])
             else:
                 pars.add('delta', value=henry_constants[i], vary=False)
                 pars.add('b', expr='delta/q')  # KH = b*q
         else:
-            pars.add('q', value=q_guess[i], min=bounds['q'][0], max=bounds['q'][1])
-            pars.add('b', value=b_guess[i], min=bounds['b'][0], max=bounds['b'][1])
+            pars.add('q', value=q_guess[i], min=bounds['q'][i][0], max=bounds['q'][i][1])
+            pars.add('b', value=b_guess[i], min=bounds['b'][i][0], max=bounds['b'][i][1])
 
         results = gmod.fit(y[i], pars, x=x[i], method=meth)
         params.append(results)
@@ -57,18 +51,12 @@ def langmuir_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report,
 
     return params, values_dict
 
+
 def langmuirTD_fit(model, x, y, guess, temps, cond, meth, cust_bounds, fit_report):
     isotherm = _MODEL_FUNCTIONS[model]
     gmod = Model(isotherm)
 
-    if cust_bounds is not None:
-        bounds = cust_bounds
-    else:
-        bounds = {
-            'q': (0, None),
-            'h': (None, None),
-            'b0': (0, None)
-        }
+    bounds = bounds_check(cust_bounds, len(temps))
 
     q_guess = guess['q']
     h_guess = guess['h']

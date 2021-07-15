@@ -1,10 +1,10 @@
 import numpy as np
-from modelEquations import *
+from pyIsofit.core.model_equations import r2hen, bold, unbold, henry, r
 import pandas as pd
-from IPython.display import display
 from matplotlib import pyplot as plt
 from scipy import stats
-from model_definitions import _TEMP_DEP_MODELS, _MODEL_DF_TITLES, _MODEL_PARAM_LISTS
+from pyIsofit.core.model_dicts import _MODEL_DF_TITLES, _MODEL_PARAM_LISTS, _MODEL_BOUNDS, _TEMP_DEP_MODELS
+
 
 def get_xy(df, keyPressures, keyUptakes, model, rel_pres):
     # Reading data from dataframe with respect to provided keys
@@ -52,6 +52,7 @@ def get_xy(df, keyPressures, keyUptakes, model, rel_pres):
     del x2, y2
 
     return x, y
+
 
 def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customhen=0.9999, compname="---"):
     # This section finds the henry region of the datasets
@@ -167,6 +168,7 @@ def henry_approx(df, keyPressures, keyUptakes, display_hen=False, tol_or_customh
 
     return henry_constants, df_henry, xy_dict
 
+
 def plot_settings(log, model="default", rel_pres=False):
     if model == "langmuir linear 1":
         xtitle = '1/Pressure [1/bar]'
@@ -206,6 +208,7 @@ def get_subplot_size(x, i):
     if 16 >= len(x) > 9:
         return 4, 4, i + 1
 
+
 def get_sorted_results(values_dict, model, temps):
     final_results_dict = {'T (K)': temps}
 
@@ -231,6 +234,7 @@ def get_sorted_results(values_dict, model, temps):
         c_list.append(c_innerlst)
 
     return final_results_dict, c_list
+
 
 def heat_calc(model, temps, param_dict, x):
     site = ['A', 'B', 'C']
@@ -272,3 +276,18 @@ def heat_calc(model, temps, param_dict, x):
             isosteric_heat(t, yparams[i], i)
     else:
         return None
+
+
+def bounds_check(model, cust_bounds, num_comps):
+    if cust_bounds is None:
+        # Converting bounds to list of tuples corresponding to each dataset
+        param_list = _MODEL_PARAM_LISTS[model]
+        bounds_dict = _MODEL_BOUNDS[model]
+        bounds = {}
+        for par in param_list:
+            par_list = [bounds_dict[par] for _ in range(num_comps)]
+            bounds[par] = par_list
+        return bounds
+    else:
+        bounds = cust_bounds
+        return bounds
