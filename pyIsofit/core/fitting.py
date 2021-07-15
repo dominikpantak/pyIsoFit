@@ -261,7 +261,7 @@ class IsothermFit:
             self.df_result = df_res_dict
             self.emod_input = params_dict
 
-            return None
+            return df_res_dict
 
         # ! Dictionary of parameters as a starting point for data fitting
         guess = get_guess_params(self.model, self.df, self.key_uptakes, self.key_pressures)
@@ -380,20 +380,20 @@ class IsothermFit:
             for comp in self.df_result:
                 filenames = [filenames[0] + comp + filetype, filenames[1] + comp + filetype]
                 if filetype == '.csv':
-                    self.df_result[comp].to_csv('fitting_results/' + filenames[0])
+                    self.df_result[comp].to_csv('/pyIsofit/fitting_results/' + filenames[0])
                 elif filetype == '.json':
-                    self.df_result[comp].to_json('fitting_results/' + filenames[0])
+                    self.df_result[comp].to_json('/pyIsofit/fitting_results/' + filenames[0])
                 print('File saved to directory')
         else:
             filenames = [filenames[0] + filetype, filenames[1] + filetype]
             if filetype == '.csv':
-                self.df_result[0].to_csv('fitting_results/' + filenames[0])
+                self.df_result[0].to_csv('/pyIsofit/fitting_results/' + filenames[0])
                 if save_henry:
-                    self.df_result[1].to_csv('fitting_results/' + filenames[1])
+                    self.df_result[1].to_csv('/pyIsofit/fitting_results/' + filenames[1])
             elif filetype == '.json':
-                self.df_result[0].to_json('fitting_results/' + filenames[0])
+                self.df_result[0].to_json('/pyIsofit/fitting_results/' + filenames[0])
                 if save_henry:
-                    self.df_result[1].to_json('fitting_results/' + filenames[1])
+                    self.df_result[1].to_json('/pyIsofit/fitting_results/' + filenames[1])
             print('File saved to directory')
 
     def plot_emod(self, yfracs, ext_model='extended dsl', logplot=False):
@@ -421,5 +421,4 @@ class IsothermFit:
                          label="{temps} K Fit".format(temps=self.temps[j]))
             plt.legend()
             plt.show()
-
         return q_dict
