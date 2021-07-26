@@ -5,6 +5,14 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/src/pyIsofit/ext_models" />
+        <option value="$MODULE_DIR$/src/pyIsofit/models" />
+      </list>
+    </option>
+  </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="pytest" />
   </component>
