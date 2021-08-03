@@ -1,0 +1,4 @@
+
+mpython:S1542"PRename function "langmuirTD" to match the regular expression ^[a-z_][a-z0-9_]*$.(‹ü³äùÿÿÿÿ
+cpython:S1542'"KRename function "dslTD" to match the regular expression ^[a-z_][a-z0-9_]*$.(´òñâ
+dpython:S1542z"LRename function "tothTD" to match the regular expression ^[a-z_][a-z0-9_]*$.(ìô¸Ø

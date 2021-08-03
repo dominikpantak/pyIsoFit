@@ -1,5 +1,5 @@
 import unittest
-from pyIsofit.core.utility_functions import get_xy, henry_approx
+from src.pyIsofit.core.utility_functions import get_xy, henry_approx
 import pandas as pd
 import numpy as np
 

@@ -3,7 +3,7 @@ import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
 
-from src.pyIsofit.core.model_equations import langmuir1, dsl, dslTD, langmuirTD, r, bold, unbold, r2, mse
+from src.pyIsofit.core.model_equations import langmuir1, dsl, dsltd, langmuirTD, r, bold, unbold, r2, mse
 from src.pyIsofit.core.model_fit_def import get_guess_params
 from src.pyIsofit.core.utility_functions import henry_approx
 
@@ -20,8 +20,8 @@ def dsl_fit(df_list: list,
             henry_off: bool
             ):
     """
-    Thermodynamically consistent fitting procedure written with accordance to the third procedure described by
-    Farmahini et al. (2018) (doi.org/10.1021/acs.iecr.8b03065).
+    Thermodynamically consistent fitting procedure written with accordance to thermodynamic consistency principles.
+    These are similar procedures to ones described by Farmahini et al. (2018) (doi.org/10.1021/acs.iecr.8b03065).
 
     Comprised of three inner functions, corresponding to each step in the procedure, which are called sequentially
     for each component.
@@ -81,7 +81,7 @@ def dsl_fit(df_list: list,
         Note - This function is first used for finding the most adsorbed component from a list of dataframes
         """
 
-        gmod = Model(dsl, nan_policy='omit')
+        gmod = Model(dsl)
         pars1 = Parameters()
 
         pars1.add('q1', value=guess['q1'][0], min=0)
@@ -138,7 +138,7 @@ def dsl_fit(df_list: list,
                 del pars
 
         else:
-            gmod = Model(dsl, nan_policy='omit')
+            gmod = Model(dsl)
             c_list = []
             for i in range(len(x)):
                 pars = Parameters()
@@ -197,7 +197,7 @@ def dsl_fit(df_list: list,
 
         if comp2 == True:
             # Again, we fit to the single langmuir form when the least adsorbed species is used
-            gmod = Model(langmuirTD, nan_policy='omit')
+            gmod = Model(langmuirTD)
             qtot = q1_in + q2_in
             c_list = []
             results_lst = []
@@ -218,7 +218,7 @@ def dsl_fit(df_list: list,
                 del pars
 
         else:
-            gmod = Model(dslTD, nan_policy='omit')  # DSL
+            gmod = Model(dsltd)  # DSL
             c_list = []
             results_lst = []
             for i in range(len(x)):
@@ -260,8 +260,8 @@ def dsl_fit(df_list: list,
                        }
 
         # Checking r squared of fits
-        r_sq = [r2(x[i], y[i], dslTD, c_list[i]) for i in range(len(x))]
-        se = [mse(x[i], y[i], dslTD, c_list[i]) for i in range(len(x))]
+        r_sq = [r2(x[i], y[i], dsltd, c_list[i]) for i in range(len(x))]
+        se = [mse(x[i], y[i], dsltd, c_list[i]) for i in range(len(x))]
 
         # Displaying results
         pd.set_option('display.max_columns', None)

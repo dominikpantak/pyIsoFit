@@ -8,14 +8,15 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from scipy import stats
 
-from ..core.model_dicts import _MODEL_DF_TITLES, _MODEL_PARAM_LISTS, _MODEL_BOUNDS
-from ..core.model_equations import r2hen, bold, unbold, henry, r
+from src.pyIsofit.core.model_dicts import _MODEL_DF_TITLES, _MODEL_PARAM_LISTS, _MODEL_BOUNDS
+from src.pyIsofit.core.model_equations import r2hen, bold, unbold, henry, r
 
 logger = logging.getLogger('pyIsofit-master')
 
 colours = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive']
 
-_models_with_b = ['langmuir', 'linear langmuir 1', 'linear langmuir 2', 'sips', 'toth']
+_models_with_b = ['langmuir', 'langmuir linear 1', 'langmuir linear 2', 'sips', 'toth']
+
 
 
 def get_xy(df, key_pressures, key_uptakes, model, rel_pres):
@@ -93,7 +94,7 @@ def get_xy(df, key_pressures, key_uptakes, model, rel_pres):
     return x, y
 
 
-def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.9999, compname="---", henry_off=False):
+def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.999, compname="---", henry_off=False):
     """
         Henry approximation function used to estimate henry constants and the henry regime.
 
@@ -184,8 +185,8 @@ def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.9999, 
     for dataset in y:
         rsq = 1
         x_i = x[i]
-        x_henry = [x_i[0], x_i[1], x_i[2]]  # Starting with a minimum of three datapoints
-        j = 3
+        x_henry = [x_i[0], x_i[1]]  # Starting with a minimum of three datapoints
+        j = 2
         # Create inner empty lists
         # rsq_ilst stores all calculated r squared values within the inner loops
         # hen_ilst stores all calculated henry constants within the inner loops
@@ -195,7 +196,7 @@ def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.9999, 
         if type(tol) == list:
             # Procedure when a list of henry regime limits are passed
             # Iterate over each datapoint within dataset for a given temperature
-            while x_i[j] < tol[i] and j < len(x_i) - 2:
+            while x_i[j] < tol[i] and j < len(x_i) - 3:
                 # Add datapoint
                 x_henry.append(x_i[j])
                 # Create y axis - same length as x axis
@@ -250,30 +251,30 @@ def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.9999, 
                 minidx = abtol.index(rsqfin)
                 rsqidx = itol[minidx]
 
-        # +3 to compensate for the initial three datapoints
-        henidx = rsqidx + 3
+        # +2 to compensate for the initial datapoints
+        henidx = rsqidx + 2
         henidx_lst.append(henidx)
 
-        try:
-            henry_len.append(henidx)
-            # Saving Henry region parameters to later display
-            henry_constants.append(hen_ilst[rsqidx])
-            henry_limits.append(x_henry[henidx])
-            henry_rsq.append(rsq_ilst[rsqidx])
+        # try:
+        henry_len.append(henidx+1)
+        # Saving Henry region parameters to later display
+        henry_constants.append(hen_ilst[rsqidx])
+        henry_limits.append(x_henry[henidx])
+        henry_rsq.append(rsq_ilst[rsqidx])
             # sometimes data may not have a good henry region fit, which could abort the above while loop after the
             # first iteration. This piece of code warns the user of this
-        except IndexError:
-            print("ERROR - Increase henry region value of index " + str(i))
+        # except IndexError:
+        #     logger.error("ERROR - Increase henry region value of index " + str(i))
 
         # Record the index of the dataset where a henry regime is made up of less than 4 points
-        if henidx < 4:
+        if henidx < 3:
             err_lowpoints.append(str(i))
 
         i += 1
 
     # Create resulting henry regime datasets and make dictionary
-    x_result = [x[i][:henidx_lst[i]] for i in range(len(x))]
-    y_result = [y[i][:henidx_lst[i]] for i in range(len(y))]
+    x_result = [x[i][:henidx_lst[i]+1] for i in range(len(x))]
+    y_result = [y[i][:henidx_lst[i]+1] for i in range(len(y))]
     xy_dict = {"x": x_result, "y": y_result}
 
     # Creating dataframe for henry constants
@@ -290,13 +291,15 @@ def henry_approx(df, key_pressures, key_uptakes, display_hen=False, tol=0.9999, 
         logger.warning(
             unbold + f'WARNING for Dataset {", ".join(err_lowpoints)}: Datasets were found to be made up of less '
                      f'than 4 points.\n '
-                     'Henry region tolerance may be entered as a kwarg - either as a float (default = 0.9999) '
-                     'or a list of floats specifying the upper limit for the henry regime for each dataset.')
+                     f'Henry region tolerance may be entered as a kwarg - either as a float (default = 0.999) '
+                     f'or a list of floats specifying the upper limit for the henry regime for each dataset.\n')
 
     if err_highrsq and display_hen:
         logger.warning(
             f"WARNING for Dataset {', '.join(err_highrsq)}: Could not find a line with an r squared of above {tol}. "
-            f"Creating a line with the highest r squared value")
+            f"Creating a line with the highest r squared value. Consider adding henry regime manually by passing"
+            f"hen_tol as a list of floats corresponding to the henry regimes of each dataset i.e hen_tol = [0.1, ...,]"
+            f"\n")
 
     return henry_constants, df_henry, xy_dict
 
@@ -516,3 +519,32 @@ def bounds_check(model, cust_bounds, num_comps):
     else:
         bounds = cust_bounds
         return bounds
+
+def save_func(directory, fit_name, filetype, df, comp=''):
+    """
+    Function that saves fitting results to directory
+
+    :param directory: str
+        input directory for the location of the save file
+
+    :param fit_name: str
+        input name of file to be saved
+
+    :param filetype: str
+        input filetype to be saved
+
+    :param df: pd.DataFrame
+        dataframe to be converted into .csv or .json
+
+    :param comp: str
+        Used to differentiate files when multiple component fitting results are saved
+
+    """
+    fit_string = directory + fit_name + comp + filetype
+
+    file_conv_fit = {
+        '.csv': df.to_csv(fit_string),
+        '.json': df.to_json(fit_string)
+    }
+    print("File saved to directory")
+    return file_conv_fit[filetype]

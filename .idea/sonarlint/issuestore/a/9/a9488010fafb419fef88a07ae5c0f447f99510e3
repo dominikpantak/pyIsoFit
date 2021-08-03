@@ -1,0 +1,19 @@
+
+tpython:S117Ä"\Rename this local variable "step1_compA" to match the regular expression ^[_a-z][a-z0-9_]*$.(¸ÒæÏ
+ypython:S117Æ"\Rename this local variable "step2_compA" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ôë×ıÿÿÿÿ
+tpython:S117Ô"\Rename this local variable "step2_compB" to match the regular expression ^[_a-z][a-z0-9_]*$.(„Àÿˆ
+tpython:S117È"\Rename this local variable "step3_compA" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ö²ˆ
+tpython:S117×"\Rename this local variable "step3_compB" to match the regular expression ^[_a-z][a-z0-9_]*$.(¤éÔî
+qpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 40 to the 15 allowed.(Ì‡Áûÿÿÿÿ
+6python:S125^"Remove this commented out code.(•åï²
+lpython:S117¬"TRename this local variable "bH1" to match the regular expression ^[_a-z][a-z0-9_]*$.(õÆßÕ
+qpython:S117­"TRename this local variable "bH2" to match the regular expression ^[_a-z][a-z0-9_]*$.(æÜ­ıÿÿÿÿ
+lpython:S117¬"TRename this local variable "mH1" to match the regular expression ^[_a-z][a-z0-9_]*$.(õÆßÕ
+qpython:S117­"TRename this local variable "mH2" to match the regular expression ^[_a-z][a-z0-9_]*$.(æÜ­ıÿÿÿÿ
+lpython:S117¬"TRename this local variable "pH1" to match the regular expression ^[_a-z][a-z0-9_]*$.(õÆßÕ
+qpython:S117­"TRename this local variable "pH2" to match the regular expression ^[_a-z][a-z0-9_]*$.(æÜ­ıÿÿÿÿ
+lpython:S117¬"TRename this local variable "rH1" to match the regular expression ^[_a-z][a-z0-9_]*$.(õÆßÕ
+qpython:S117­"TRename this local variable "rH2" to match the regular expression ^[_a-z][a-z0-9_]*$.(æÜ­ıÿÿÿÿ
+ppython:S117¬"XRename this local variable "sterrH1" to match the regular expression ^[_a-z][a-z0-9_]*$.(õÆßÕ
+upython:S117­"XRename this local variable "sterrH2" to match the regular expression ^[_a-z][a-z0-9_]*$.(æÜ­ıÿÿÿÿ
+<python:S125˜"Remove this commented out code.(³ç‚£şÿÿÿÿ

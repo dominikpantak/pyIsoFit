@@ -3,16 +3,17 @@ Main module for all of the features that pyIsofit-master has.
 """
 import pandas as pd
 import numpy as np
+import pprint
 from matplotlib import pyplot as plt
-from ..core.model_fit_def import get_guess_params
-from ..core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
-from ..ext_models.ext_dsl import ext_dsl
-from ..models.dsl import dsl_fit
-from ..models.generic import generic_fit
-from ..core.utility_functions import henry_approx, get_sorted_results, get_xy, heat_calc, plot_settings, \
-    get_subplot_size, colours
-from ..core.model_equations import r2, mse, henry
-from ..core.exceptions import *
+from src.pyIsofit.core.model_fit_def import get_guess_params
+from src.pyIsofit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
+from src.pyIsofit.ext_models.ext_dsl import ext_dsl
+from src.pyIsofit.models.dsl import dsl_fit
+from src.pyIsofit.models.generic import generic_fit
+from src.pyIsofit.core.utility_functions import henry_approx, get_sorted_results, get_xy, heat_calc, plot_settings, \
+    get_subplot_size, colours, save_func
+from src.pyIsofit.core.model_equations import r2, mse, henry
+from src.pyIsofit.core.exceptions import ParameterError, SaveError
 import logging
 
 logger = logging.getLogger('pyIsofit-master')
@@ -20,6 +21,8 @@ logger = logging.getLogger('pyIsofit-master')
 _MODELS = ['mdr', 'mdr td', 'langmuir', 'langmuir linear 1', 'langmuir linear 2', 'langmuir td',
            'dsl nc', 'dsl', 'gab', 'sips', 'toth', 'toth td', 'bddt', 'bddt 2n', 'bddt 2n-1',
            'dodo', 'bet', 'henry']
+
+_does_something = ['langmuir', 'linear langmuir 1', 'linear langmuir 2', 'langmuir td', 'bddt', 'bddt 2n-1', 'bddt 2n']
 
 
 class IsothermFit:
@@ -143,7 +146,7 @@ class IsothermFit:
         self.x = []
         self.y = []
         self.params = []
-        self.df_result = []
+        self.df_result = None
         self.emod_input = {}
         self.henry_params = []
         self.rel_pres = False
@@ -157,16 +160,17 @@ class IsothermFit:
         print(f'Parameters for the {self.model} model:')
         print(_MODEL_PARAM_LISTS[self.model])
 
-    def fit(self, cond=False,
+    def fit(self,
+            cond=False,
             meth='leastsq',
             show_hen=False,
-            hen_tol=0.9999,
+            hen_tol=0.999,
             rel_pres=False,
             henry_off=False,
             guess=None,
             cust_bounds=None,
             fit_report=False,
-            weights = None
+            weights=None
             ):
 
         """
@@ -258,12 +262,11 @@ class IsothermFit:
             try:
                 dsl_result = dsl_fit(self.df, self.key_pressures, self.key_uptakes,
                                      self.temps, self.compname, meth, guess, hen_tol, show_hen, henry_off)
-
             except ValueError:
                 # Often the fitting algorithm is the source of the error
-                logger.critical('Fitting aborted! Try changing lmfit fitting method (default is "leastsq")'
-                                ' by passing it as an argument in .fit() i.e. meth="tnc".\n'
-                                'Recommended "tnc" or "nedler"\n')
+                logger.critical('The model function generated NaN values and the fit aborted!'
+                                'Please check your model function and/or set boundaries on parameters where applicable'
+                                'In these cases try changing lmfit fitting method (default is "leastsq") to "tnc"')
 
             df_dict, results_dict, df_res_dict, params_dict = dsl_result
 
@@ -283,7 +286,13 @@ class IsothermFit:
 
             return df_res_dict
 
+        if self.model not in _does_something and cond is not False:
+            logger.warning(f"WARNING You have set cond={cond} but cond for the model '{self.model}' does nothing.\n")
+
         # Calculating henry constants and displaying results (see function docstring)
+        if self.model == "henry":
+            show_hen = True
+
         henry_params = henry_approx(self.df, self.key_pressures, self.key_uptakes, show_hen, hen_tol,
                                     self.compname, henry_off)
 
@@ -292,6 +301,7 @@ class IsothermFit:
         # When model is henry, only the henry approximation function is run and the rest is ignored
         if self.model == "henry":
             self.henry_params = henry_params
+            self.df_result = henry_params[1]
             return None
 
         # ! Dictionary of parameters as a starting point for data fitting
@@ -301,13 +311,14 @@ class IsothermFit:
         if guess is not None:
             for param, guess_val in guess.items():
                 if param not in list(guess.keys()):
-                    raise Exception("%s is not a valid parameter"
-                                    " in the %s model." % (param, self.model))
+                    raise ParameterError("%s is not a valid parameter"
+                                         " in the %s model." % (param, self.model))
                 guess[param] = guess_val
 
         # MDR works best when dealing with relative pressures - This forces it on
         if "mdr" in self.model:
-            self.rel_pres = True
+            rel_pres = True
+        self.rel_pres = rel_pres
 
         # Extracts the x and y parameter lists from the dataframe
         self.x, self.y = get_xy(self.df, self.key_pressures, self.key_uptakes, self.model, rel_pres)
@@ -334,11 +345,11 @@ class IsothermFit:
         final_results_dict, c_list = get_sorted_results(values_dict, self.model, self.temps)
 
         # Find the r squared and mean squared error (mse) values
-        r_sq = [r2(self.x[i], self.y[i], _MODEL_FUNCTIONS[self.model], c_list[i]) for i in range(len(self.x))]
+        # r_sq = [r2(self.x[i], self.y[i], _MODEL_FUNCTIONS[self.model], c_list[i]) for i in range(len(self.x))]
         se = [mse(self.x[i], self.y[i], _MODEL_FUNCTIONS[self.model], c_list[i]) for i in range(len(self.x))]
 
         # Add r squared and mse results to final results dictionary
-        final_results_dict['R squared'] = r_sq
+        # final_results_dict['R squared'] = r_sq
         final_results_dict['MSE'] = se
 
         # Create dataframe with fitting results
@@ -350,8 +361,7 @@ class IsothermFit:
         print(df_result)
 
         # Save dataframes for model results and henry regime to class for use within the .save() function
-        self.df_result.append(df_result)
-        self.df_result.append(henry_params[1])
+        self.df_result = df_result
 
         if len(self.temps) >= 3:
             heat_calc(self.model, self.temps, final_results_dict, self.x)
@@ -371,6 +381,9 @@ class IsothermFit:
         """
         np.linspace(0, 10, 301)
 
+        fit_label = "{temps} K Fit"
+        data_label = "Data at {temps} K"
+
         # Plotting for more than one component
         if type(self.df) is list:
             for i in range(len(self.df)):
@@ -381,9 +394,9 @@ class IsothermFit:
                 plt.title(self.compname[i])
                 for j in range(len(self.key_pressures)):
                     plt.plot(self.x[i][j], comp_x_params[j].best_fit, '-', color=colours[j],
-                             label="{temps} K Fit".format(temps=self.temps[j]))
+                             label=fit_label.format(temps=self.temps[j]))
                     plt.plot(self.x[i][j], self.y[i][j], 'ko', color='0.75',
-                             label="Data at {temps} K".format(temps=self.temps[j]))
+                             label=data_label.format(temps=self.temps[j]))
 
         # Plotting for henry model
         elif self.model == "henry":
@@ -398,13 +411,14 @@ class IsothermFit:
                 subplot_size = get_subplot_size(lenx, i)
 
                 plt.subplot(subplot_size[0], subplot_size[1], subplot_size[2])
-                plt.subplots_adjust(wspace=0.3, hspace=0.2)
+                plt.subplots_adjust(wspace=0.3, hspace=0.3)
 
-                plt.title('Henry region at ' + str(self.temps[i]) + ' °C')
+                plt.title('Henry regime at ' + str(self.temps[i]) + ' K')
                 plt.plot(x_hen[i], y_henfit, '-', color=colours[i],
-                         label="{temps} K Fit".format(temps=self.temps[i]))
+                         label=fit_label.format(temps=self.temps[i]))
                 plt.plot(x_hen[i], y_hen[i], 'ko', color='0.75',
-                         label="Data at {temps} K".format(temps=self.temps[i]))
+                         label=data_label.format(temps=self.temps[i]))
+                plt.legend()
 
         # Plotting for any other model
         else:
@@ -412,16 +426,19 @@ class IsothermFit:
 
             for i in range(len(self.key_pressures)):
                 plt.plot(self.x[i], self.params[i].best_fit, '-', color=colours[i],
-                         label="{temps} K Fit".format(temps=self.temps[i]))
+                         label=fit_label.format(temps=self.temps[i]))
                 plt.plot(self.x[i], self.y[i], 'ko', color='0.75',
-                         label="Data at {temps} K".format(temps=self.temps[i]))
+                         label=data_label.format(temps=self.temps[i]))
         plt.legend()
         plt.show()
 
-    def save(self, filestring=None, filetype='.csv', save_henry=False):
+    def save(self, directory=None, filestring=None, filetype='.csv'):
         """
         Saves the model fitting result and henry region fitting result dataframes to directory as a .csv or .json
         file.
+
+        :param directory:
+            Full destination directory must be inputted for the user to save a file
 
         :param filestring: list[str] or str
             This is a list of strings corresponding to the file names, first position is fit result, second is
@@ -430,43 +447,22 @@ class IsothermFit:
         :param filetype: str
             .csv or .json for saving
 
-        :param save_henry: bool
-            Whether to save the henry region fitting result
-
         """
+        # Directory input check
+        if directory is None:
+            raise SaveError("\n\nPlease enter full directory for saving file separated by double dashes i.e "
+                            "C:\\Users\\User\\pyIsofit-master\\fittingresults\\")
 
         # File name input check
         if filestring is None:
-            filenames = ['fit_result', 'henry_result']
-        elif type(filestring) is str and save_henry is False:
-            filenames = [filestring]
-        elif type(filestring) is str and save_henry:
-            filenames = [filestring, 'henry_result']
+            filestring = 'fit_result'
 
         # Creates file for each component when there are multiple components
         if type(self.df_result) is dict:
             for comp in self.df_result:
-                filenames = [filenames[0] + comp + filetype, filenames[1] + comp + filetype]
-                if filetype == '.csv':
-                    self.df_result[comp].to_csv('../fitting_results/' + filenames[0])
-                    if save_henry:
-                        self.df_result[comp].to_csv('../fitting_results/' + filenames[1])
-                elif filetype == '.json':
-                    self.df_result[comp].to_json('../fitting_results/' + filenames[0])
-                    if save_henry:
-                        self.df_result[comp].to_json('../fitting_results/' + filenames[1])
-                print('File saved to directory')
+                save_func(directory, filestring, filetype, self.df_result[comp], comp)
         else:
-            filenames = [filenames[0] + filetype, filenames[1] + filetype]
-            if filetype == '.csv':
-                self.df_result[0].to_csv('../fitting_results/' + filenames[0])
-                if save_henry:
-                    self.df_result[1].to_csv('../fitting_results/' + filenames[1])
-            elif filetype == '.json':
-                self.df_result[0].to_json('../fitting_results/' + filenames[0])
-                if save_henry:
-                    self.df_result[1].to_json('../fitting_results/' + filenames[1])
-            print('File saved to directory')
+            save_func(directory, filestring, filetype, self.df_result)
 
     def plot_emod(self, yfracs, ext_model='extended dsl', logplot=(False, False)):
         """

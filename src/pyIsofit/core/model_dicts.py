@@ -4,12 +4,12 @@ This file includes all of the dictionaries which are necessary for fitting.
 If a model is to be added using a generic fitting method, it may be added by adding entries to the dictionaries below as
 well as the model_fit_def.py file.
 """
-from ..core.model_equations import *
+from src.pyIsofit.core.model_equations import langmuir1, langmuirlin1, langmuirlin2, langmuirTD, gab, mdr, dsl, sips, \
+    toth, bddt1, bddt2, dodo, bet
 
 # List of parameters for each model used for sorting dictionaries
 _MODEL_PARAM_LISTS = {
     'mdr': ['n0', 'n1', 'a', 'c'],
-    'mdr td': ['n0', 'n1', 'a', 'b', 'e'],
     'langmuir': ['q', 'b'],
     'langmuir linear 1': ['q', 'b'],
     'langmuir linear 2': ['q', 'b'],
@@ -18,7 +18,6 @@ _MODEL_PARAM_LISTS = {
     'gab': ['n', 'ka', 'ca'],
     'sips': ['q', 'b', 'n'],
     'toth': ['q', 'b', 't'],
-    'toth td': ['q', 'b0', 't', 'h'],
     'bddt': ['c', 'n', 'g', 'q'],
     'dodo': ['ns', 'kf', 'nu', 'ku', 'm'],
     'bet': ['n', 'c']
@@ -28,7 +27,6 @@ _MODEL_PARAM_LISTS = {
 # Input units here beside parameters for clarity when describing parameters
 _MODEL_DF_TITLES = {
     'mdr': ['n0', 'n1', 'a', 'c'],
-    'mdr td': ['n0 (mmol/g)', 'n1 (mmol/g)', 'a', 'b', 'e (J/mol)'],
     'langmuir': ['q (mmol/g)', 'b (1/bar)'],
     'langmuir linear 1': ['q (mmol/g)', 'b (1/bar)'],
     'langmuir linear 2': ['q (mmol/g)', 'b (1/bar)'],
@@ -37,7 +35,6 @@ _MODEL_DF_TITLES = {
     'gab': ['n (mmol/g)', 'ka (H2O activity coeff.)', 'ca (GAB const.)'],
     'sips': ['q (mmol/g)', 'b (1/bar)', 'n (heterogeneity parameter)'],
     'toth': ['q (mmol/g)', 'b (1/bar)', 't (heterogeneity parameter)'],
-    'toth td': ['q (mmol/g)', 'b0 (1/bar)', 't (heterogenity parameter)', 'h (J/mol)'],
     'bddt': ['c (BET const.)', 'n (layers)', 'g', 'q (mmol/g)'],
     'dodo': ['ns (mmol/g)', 'kf', 'nμ (mmol/g)', 'kμ', 'm'],
     'bet': ['n (mmol/g)', 'c']
@@ -91,12 +88,6 @@ _MODEL_BOUNDS = {
         'b': (0, None),
         't': (0, None)
     },
-    'toth td': {
-        'q': (0, None),
-        'b0': (0, None),
-        't': (0, None),
-        'h': (None, None)
-    },
     'bddt': {
         'c': (0, None),
         'n': (0, None),
@@ -109,13 +100,6 @@ _MODEL_BOUNDS = {
         'nu': (0, None),
         'ku': (0, None),
         'm': (0, None)
-    },
-    'mdr td': {
-        'n0': (0, None),
-        'n1': (0, None),
-        'a': (0, None),
-        'b': (0, None),
-        'e': (None, None)
     },
     'bet': {
         'n': (0, None),
@@ -132,7 +116,6 @@ _MODEL_FUNCTIONS = {
     'dsl': dsl,
     'gab': gab,
     'mdr': mdr,
-    'mdrtd': mdrtd,
     'sips': sips,
     'toth': toth,
     'bddt 2n': bddt1,
@@ -140,12 +123,11 @@ _MODEL_FUNCTIONS = {
     'bddt': bddt1,
     'dodo': dodo,
     'bet': bet,
-    'toth td': tothTD
 }
 
 # Input any temperature dependent model names here, this is to avoid errors where temperature dependent models cause
 # problems
-_TEMP_DEP_MODELS = ['langmuir td', 'mdr td', 'toth td']
+_TEMP_DEP_MODELS = ['langmuir td']
 
 # Information for every individual model fitting (WIP)
 # _MODEL_INFO = {

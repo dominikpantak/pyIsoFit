@@ -44,6 +44,8 @@ def generic_fit(model, weights, y, guess, temps, cond, meth, cust_bounds, fit_re
         # resulting in a constrained fitting if the fitting condition is set to True
         if i == 0 and 'q' in _MODEL_PARAM_LISTS[model]:
             q_fix = results.values['q']
+        elif i == 0 and 'n0' in _MODEL_PARAM_LISTS[model]:
+            q_fix = results.values['n0']
 
         del results, pars
 

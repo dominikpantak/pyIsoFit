@@ -36,7 +36,7 @@ def dsl(x, q1, q2, b1, b2):
     return site1 + site2
 
 
-def dslTD(x, t, q1, q2, h1, h2, b01, b02):
+def dsltd(x, t, q1, q2, h1, h2, b01, b02):
     b1 = b01 * np.exp(-h1 / (r * t))
     b2 = b02 * np.exp(-h2 / (r * t))
     site1 = q1 * ((b1 * x) / (1 + b1 * x))

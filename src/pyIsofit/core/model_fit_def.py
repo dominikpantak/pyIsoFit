@@ -2,7 +2,7 @@
 Module for functions associated with model definitions.
 
 """
-from ..core.utility_functions import henry_approx, bounds_check
+from src.pyIsofit.core.utility_functions import henry_approx, bounds_check
 
 
 def get_guess_params(model, df, key_uptakes, key_pressures):
@@ -59,14 +59,6 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "a": [0.1 * b for b in langmuir_b],
             "c": [10 * b for b in langmuir_b]
         }
-    if model == "mdr td":
-        return {
-            "n0": saturation_loading,
-            "n1": langmuir_b,
-            "a": [0.1 * b for b in langmuir_b],
-            "b": [10 * b for b in langmuir_b],
-            "e": [-1000 for _ in saturation_loading]
-        }
     if model == "sips":
         return {
             "q": saturation_loading,
@@ -92,7 +84,7 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "kf": langmuir_b,
             "nu": [b * 10 for b in saturation_loading],
             "ku": langmuir_b,
-            "m": [5 for i in saturation_loading]
+            "m": [5 for _ in saturation_loading]
         }
     if model == "bet":
         return {
@@ -138,30 +130,13 @@ def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, h
                ('b1', guess['b1'][i], True, *bounds['b1'][i]), \
                ('b2', guess['b2'][i], True, *bounds['b2'][i])
 
-    # if model == "dsl new" and cond is True:
-    #     q1fix, q2fix = q_fix
-    #     q1 = ('q1', guess['q1'][i], True, *bounds['q1'][i])
-    #     q2 = ('q2', guess['q2'][i], True, *bounds['q2'][i])
-    #     if cond and i != 0:
-    #         q1 = ('q1', q1fix, True, q1fix, q1fix + 0.001)
-    #         q2 = ('q2', q2fix, True, q2fix, q2fix + 0.001)
-    #
-    #     if henry_off:
-    #         b2 = ('b1', guess['b1'][i], True, *bounds['b1'][i])
-    #         b1 = ('b2', guess['b2'][i], True, *bounds['b2'][i])
-    #         return q1, q2, b1, b2
-    #
-    #     else:
-    #         delta = ('delta', henry_constants[i], False)
-    #         b2 = ('b2', guess['b2'][i], True, *bounds['b2'][i])
-    #         b1 = ('b1', None, None, None, None, '(delta-q2*b2)/q1')
-    #         return q1, q2, b2, delta, b1
-
     if "langmuir" in model and model != "langmuir td":
         q = ('q', guess['q'][i], True, *bounds['q'][i])
         b = ('b', guess['b'][i], True, *bounds['b'][i])
-        if cond and i != 0:
-            q = ('q', q_fix, True, q_fix, q_fix + 0.001)
+        if cond:
+            if i != 0:
+                q = ('q', q_fix, True, q_fix, q_fix + 0.001)
+
             if henry_off:
                 return q, b
             else:
@@ -186,10 +161,21 @@ def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, h
                ('ca', guess['ca'][i], True, *bounds['ca'][i])
 
     if model == "mdr":
-        return ('n0', guess['n0'][i], True, *bounds['n0'][i]), \
-               ('n1', guess['n1'][i], True, *bounds['n1'][i]), \
-               ('a', guess['a'][i], True, *bounds['a'][i]), \
-               ('c', guess['c'][i], True, *bounds['c'][i])
+        n0 = ('n0', guess['n0'][i], True, *bounds['n0'][i])
+        n1 = ('n1', guess['n1'][i], True, *bounds['n1'][i])
+        a = ('a', guess['a'][i], True, *bounds['a'][i])
+        c = ('c', guess['c'][i], True, *bounds['c'][i])
+        if cond:
+            if i != 0:
+                n0 = ('n0', q_fix, True, q_fix, q_fix + 0.001)
+            if henry_off:
+                return n0, n1, a, c
+            else:
+                delta = ('delta', henry_constants[i], False)
+                n1 = ('n1', None, None, None, None, 'delta/n0')
+                return n0, delta, n1, a, c
+
+        return n0, n1, a, c
 
     if model == "sips":
         return ('q', guess['q'][i], True, *bounds['q'][i]), \
@@ -200,13 +186,6 @@ def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, h
         return ('q', guess['q'][i], True, *bounds['q'][i]), \
                ('b', guess['b'][i], True, *bounds['b'][i]), \
                ('t', guess['t'][i], True, *bounds['t'][i])
-
-    if model == "toth td":
-        return ('temp', temps[i], False), \
-               ('q', guess['q'][i], True, *bounds['q'][i]), \
-               ('b0', guess['b0'][i], True, *bounds['b0'][i]), \
-               ('t', guess['t'][i], True, *bounds['t'][i]), \
-               ('h', guess['h'][i], True, *bounds['h'][i])
 
     if "bddt" in model:
         if cond is True:
@@ -221,17 +200,9 @@ def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, h
     if model == "dodo":
         return ('ns', guess['ns'][i], True, *bounds['ns'][i]), \
                ('kf', guess['kf'][i], True, *bounds['kf'][i]), \
-               ('nu', guess['nu'][i], True, *bounds['ns'][i]), \
+               ('nu', guess['nu'][i], True, *bounds['nu'][i]), \
                ('ku', guess['ku'][i], True, *bounds['ku'][i]), \
                ('m', guess['m'][i], True, *bounds['m'][i])
-
-    if model == "mdr td":
-        return ('t', temps[i], False), \
-               ('n0', guess['n0'][i], True, *bounds['n0'][i]), \
-               ('n1', guess['n1'][i], True, *bounds['n1'][i]), \
-               ('a', guess['a'][i], True, *bounds['a'][i]), \
-               ('b', guess['b'][i], True, *bounds['b'][i]), \
-               ('e', guess['e'][i], True, *bounds['e'][i])
 
     if model == "bet":
         return ('n', guess['n'][i], True, *bounds['n'][i]), \
