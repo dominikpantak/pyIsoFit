@@ -1,5 +1,6 @@
 import unittest
-from src.pyIsoFit.core.utility_functions import get_xy, henry_approx
+from src.pyIsoFit.core.utility_functions import get_xy
+from src.pyIsoFit.models.henry import henry_approx
 import pandas as pd
 import numpy as np
 
@@ -32,32 +33,32 @@ class TestUtilityFunctions(unittest.TestCase):
         y_test4 = [[0.5, 0.25, 0.166666667, 0.125], [1, 0.5, 0.333333333, 0.25]]
 
         # # Testing langmuir linear 2
-        # x_test5 = [[1, 2, 3, 4], [0.5, 1, 1.5, 2]]
-        # y_test5 = [[2, 2, 2, 2], [2, 2, 2, 2]]
+        x_test5 = [[1, 2, 3, 4], [0.5, 1, 1.5, 2]]
+        y_test5 = [[2, 2, 2, 2], [2, 2, 2, 2]]
 
         df1 = pd.read_csv('testing library/test_get_xy1.csv')
         df2 = pd.read_csv('testing library/test_get_xy2.csv')
         df3 = pd.read_csv('testing library/test_get_xy3.csv')
-        # df4 = pd.read_csv('../testing library/test_get_xy4.csv')
-        # df5 = pd.read_csv('../testing library/test_get_xy5.csv')
+        df4 = pd.read_csv('testing library/test_get_xy4.csv')
+        df5 = pd.read_csv('testing library/test_get_xy5.csv')
 
         key_x1 = ['x1', 'x2']
         key_x2 = ['x1', 'x2', 'x3']
         key_x3 = ['x1', 'x2', 'x3']
-        # key_x4 = ['x1', 'x2']
-        # key_x5 = ['x1', 'x2']
+        key_x4 = ['x1', 'x2']
+        key_x5 = ['x1', 'x2']
 
         key_y1 = ['y1', 'y2']
         key_y2 = ['y1', 'y2', 'y3']
         key_y3 = ['y1', 'y2', 'y3']
-        # key_y4 = ['y1', 'y2']
-        # key_y5 = ['y1', 'y2']
+        key_y4 = ['y1', 'y2']
+        key_y5 = ['y1', 'y2']
 
         x1, y1 = get_xy(df1, key_x1, key_y1, model1, False)
         x2, y2 = get_xy(df2, key_x2, key_y2, model2, False)
         x3, y3 = get_xy(df3, key_x3, key_y3, model3, False)
-        # x4, y4 = get_xy(df4, key_x4, key_y4, model4, False)
-        # x5, y5 = get_xy(df5, key_x5, key_y5, model5, False)
+        x4, y4 = get_xy(df4, key_x4, key_y4, model4, False)
+        x5, y5 = get_xy(df5, key_x5, key_y5, model5, False)
 
         for i in range(len(x_test1)):
             # for j in range(len(x_test1[i])):
@@ -70,11 +71,11 @@ class TestUtilityFunctions(unittest.TestCase):
             np.testing.assert_array_equal(x3[i], x_test3[i])
             np.testing.assert_array_equal(y3[i], y_test3[i])
 
-            # self.assertEqual(x4[i][j], x_test4[i][j])
-            # self.assertEqual(y4[i][j], y_test4[i][j])
+            np.testing.assert_array_equal(x4[i], x_test4[i])
+            np.testing.assert_array_equal(y4[i], y_test4[i])
 
-            # self.assertEqual(x5[i][j], x_test5[i][j])
-            # self.assertEqual(y5[i][j], y_test5[i][j])
+            np.testing.assert_array_equal(x5[i], x_test5[i])
+            np.testing.assert_array_equal(y5[i], y_test5[i])
 
             # self.assertEqual((x2, y2), (x_test2, y_test2))
             # self.assertEqual((x3, y3), (x_test3, y_test3))
