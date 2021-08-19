@@ -50,8 +50,8 @@ temps = [25, 50, 75, 100]
 key_pressures = ['p1', 'p2', 'p3', 'p4']
 key_uptakes = ['q1', 'q2', 'q3', 'q4']
 
-test = IsothermFit(df1, temps, key_pressures, key_uptakes, "langmuir linear 2", compname)
-test.fit(hen_tol=0.999, show_hen=True)
+test = IsothermFit(df1, temps, key_pressures, key_uptakes, "langmuir", compname)
+test.fit(hen_tol=0.999, show_hen=True, cond=True)
 # test.save(directory="C:\\Users\\domin\\PycharmProjects\\pyIsoFit-master\\fittingresults\\")
 test.plot()
 
@@ -65,3 +65,5 @@ test.plot()
 # test.info_params()
 # test.fit(rel_pres=True)
 # test.plot()
+
+

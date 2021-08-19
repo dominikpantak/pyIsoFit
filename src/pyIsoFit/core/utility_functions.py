@@ -91,7 +91,8 @@ def get_xy(df, key_pressures, key_uptakes, model, rel_pres):
 
     return x, y
 
-def plot_settings(log, model=None, rel_pres=False):
+
+def plot_settings(log, model=None, rel_pres=False, testing=False):
     """
     Settings for plotting.
 
@@ -146,6 +147,9 @@ def plot_settings(log, model=None, rel_pres=False):
     plt.ylabel(ytitle)
     plt.tick_params(**tick_style)
     plt.grid()
+
+    if testing:
+        return xtitle, ytitle, logx, logy
 
 
 def get_subplot_size(lenx, i):
@@ -215,7 +219,7 @@ def get_sorted_results(values_dict, model, temps):
     return final_results_dict, c_list
 
 
-def heat_calc(model, temps, param_dict, x):
+def heat_calc(model, temps, param_dict, x=None, testing=False):
     """
     Calculates heat of adsorption for the GAB, Langmuir and DSL isotherm models using the
     temperature dependent parameters.
@@ -243,9 +247,10 @@ def heat_calc(model, temps, param_dict, x):
         mh, bh, rh, ph, sterrh = stats.linregress(t, ln_b)
         h = -0.001 * mh * r
 
-        print("_______________________________________________________________________")
-        print("Heat of adsorption for site " + site[j] + ":" + str(round(h, 2)) + " kJ/mol. \n" +
-              "R sq of Van't Hoff: " + str(round(rh, 4)))
+        print( "_______________________________________________________________________\n" + \
+               "Heat of adsorption for site " + site[j] + ":" + str(round(h, 2)) + " kJ/mol. \n" + \
+               "R sq of Van't Hoff: " + str(round(rh, 4)))
+        return h
 
     if model == "gab":
         xT = []
@@ -263,18 +268,23 @@ def heat_calc(model, temps, param_dict, x):
         avgh = np.average(h)
         sterr = (1.96 * np.std(h) / (len(h)) ** 0.5)
         print("ΔH_is: " + str(round(avgh, 2)) + " (∓ " + str(round(sterr, 2)) + ") kJ/mol. ")
+        result = avgh
 
     elif model in _models_with_b:
         yparams = param_dict['b (1/bar)']
-        isosteric_heat(t, yparams)
+        result = isosteric_heat(t, yparams)
 
     elif model == "dsl":
         yparams = [param_dict['b1 (1/bar)'], param_dict['b2 (1/bar)']]
+        result = []
         for i in range(2):
-            isosteric_heat(t, yparams[i], i)
+            h = isosteric_heat(t, yparams[i], i)
+            result.append(h)
     else:
-        return None
+        result = None
 
+    if testing:
+        return result
 
 def bounds_check(model, cust_bounds, num_comps):
     """
@@ -307,6 +317,7 @@ def bounds_check(model, cust_bounds, num_comps):
         bounds = cust_bounds
         return bounds
 
+
 def save_func(directory, fit_name, filetype, df, comp=''):
     """
     Function that saves fitting results to directory
@@ -335,3 +346,5 @@ def save_func(directory, fit_name, filetype, df, comp=''):
     }
     print("File saved to directory")
     return file_conv_fit[filetype]
+
+import pandas as pd
