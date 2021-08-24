@@ -3,6 +3,12 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open("requirements.txt", "r") as fh:
+    requirements = fh.read()
+
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 setuptools.setup(
     name="pyIsoFit",                     # This is the name of the package
     version="0.0.1",                        # The initial release version
@@ -18,5 +24,5 @@ setuptools.setup(
     ],                                      # Information to filter the project on PyPi website
     package_dir={'': 'src'},
     python_requires='>=3.6',                # Minimum version requirement of the package
-    install_requires=["lmfit", "scipy", "pandas", "matplotlib", "numpy"]           # Install other dependencies if any
+    install_requires=required          # Install other dependencies if any
 )

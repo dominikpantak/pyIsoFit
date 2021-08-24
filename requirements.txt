@@ -1,0 +1,5 @@
+lmfit==1.*
+scipy==1.*
+pandas==1.*
+matplotlib==3.*
+numpy==1.*

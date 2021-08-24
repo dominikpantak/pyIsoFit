@@ -2,8 +2,11 @@
 Module for functions associated with model definitions.
 
 """
+import pandas as pd
+
 from src.pyIsoFit.core.utility_functions import bounds_check
 from src.pyIsoFit.models.henry import henry_approx
+from pprint import pprint
 
 
 def get_guess_params(model, df, key_uptakes, key_pressures):
@@ -100,8 +103,7 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "h": h_guess
         }
 
-
-def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, henry_off, q_fix):
+def get_fit_tuples(model, guess, temps, i, cond, cust_bounds=None, henry_constants=None, henry_off=False, q_fix=None):
     """
     Definitions of the fitting procedures for each model in the form of tuples.
 
@@ -208,3 +210,4 @@ def get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, h
     if model == "bet":
         return ('n', guess['n'][i], True, *bounds['n'][i]), \
                ('c', guess['c'][i], True, *bounds['c'][i]),
+
