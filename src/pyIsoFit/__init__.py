@@ -1,4 +1,4 @@
 __author__ = "Dominik Pantak"
 
-from .core.fitting import IsothermFit
+from pyIsoFit.core.fitting import IsothermFit
 

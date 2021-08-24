@@ -4,19 +4,19 @@ Main module for all of the features that pyIsoFit-master has.
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-from src.pyIsoFit.core.model_fit_def import get_guess_params
-from src.pyIsoFit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
-from src.pyIsoFit.ext_models.ext_dsl import ext_dsl
-from src.pyIsoFit.models.dsl import dsl_fit
-from src.pyIsoFit.models.generic import generic_fit
-from src.pyIsoFit.core.utility_functions import get_sorted_results, get_xy, heat_calc, plot_settings, \
+from pyIsoFit.core.model_fit_def import get_guess_params
+from pyIsoFit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
+from pyIsoFit.ext_models.ext_dsl import ext_dsl
+from pyIsoFit.models.dsl import dsl_fit
+from pyIsoFit.models.generic import generic_fit
+from pyIsoFit.core.utility_functions import get_sorted_results, get_xy, heat_calc, plot_settings, \
     get_subplot_size, colours, save_func
-from src.pyIsoFit.core.model_equations import mse, henry
-from src.pyIsoFit.core.exceptions import ParameterError, SaveError
+from pyIsoFit.core.model_equations import mse, henry
+from pyIsoFit.core.exceptions import ParameterError, SaveError
 import logging
 from IPython.display import display
 
-from src.pyIsoFit.models.henry import henry_approx
+from pyIsoFit.models.henry import henry_approx
 
 logger = logging.getLogger('pyIsoFit-master')
 

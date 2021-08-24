@@ -1,5 +1,5 @@
 import numpy as np
-from src.pyIsoFit.core.model_equations import r
+from pyIsoFit.core.model_equations import r
 
 
 def ext_dsl(param_dict, temps, x, comps, yfracs):

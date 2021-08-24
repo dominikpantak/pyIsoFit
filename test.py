@@ -1,3 +1,2 @@
-from pyIsoFit import IsothermFit
 
 

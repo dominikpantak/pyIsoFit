@@ -4,8 +4,8 @@ Module for functions associated with model definitions.
 """
 import pandas as pd
 
-from src.pyIsoFit.core.utility_functions import bounds_check
-from src.pyIsoFit.models.henry import henry_approx
+from pyIsoFit.core.utility_functions import bounds_check
+from pyIsoFit.models.henry import henry_approx
 from pprint import pprint
 
 

@@ -4,7 +4,7 @@ This file includes all of the dictionaries which are necessary for fitting.
 If a model is to be added using a generic fitting method, it may be added by adding entries to the dictionaries below as
 well as the model_fit_def.py file.
 """
-from src.pyIsoFit.core.model_equations import langmuir1, langmuirlin1, langmuirlin2, langmuirTD, gab, mdr, dsl, sips, \
+from pyIsoFit.core.model_equations import langmuir1, langmuirlin1, langmuirlin2, langmuirTD, gab, mdr, dsl, sips, \
     toth, bddt1, bddt2, dodo, bet
 
 # List of parameters for each model used for sorting dictionaries

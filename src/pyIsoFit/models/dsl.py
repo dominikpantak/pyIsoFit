@@ -3,9 +3,9 @@ import numpy as np
 from scipy import stats
 from lmfit import Model, Parameters
 
-from src.pyIsoFit.core.model_equations import langmuir1, dsl, dsltd, langmuirTD, r, bold, unbold, mse
-from src.pyIsoFit.core.model_fit_def import get_guess_params
-from src.pyIsoFit.models.henry import henry_approx
+from pyIsoFit.core.model_equations import langmuir1, dsl, dsltd, langmuirTD, r, bold, unbold, mse
+from pyIsoFit.core.model_fit_def import get_guess_params
+from pyIsoFit.models.henry import henry_approx
 from IPython.display import display
 
 

@@ -7,8 +7,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy import stats
 
-from src.pyIsoFit.core.model_dicts import _MODEL_DF_TITLES, _MODEL_PARAM_LISTS, _MODEL_BOUNDS
-from src.pyIsoFit.core.model_equations import r
+from pyIsoFit.core.model_dicts import _MODEL_DF_TITLES, _MODEL_PARAM_LISTS, _MODEL_BOUNDS
+from pyIsoFit.core.model_equations import r
 
 logger = logging.getLogger('pyIsoFit-master')
 

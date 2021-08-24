@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import logging as logger
 
-from src.pyIsoFit.core.model_equations import r2hen, henry, bold, unbold
+from pyIsoFit.core.model_equations import r2hen, henry, bold, unbold
 from IPython.display import display
 
 

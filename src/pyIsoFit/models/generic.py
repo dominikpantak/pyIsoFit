@@ -2,8 +2,8 @@
 Generic fitting procedure for all models except for the constrained dsl fitting procedure
 """
 from lmfit import Model, Parameters
-from src.pyIsoFit.core.model_fit_def import get_fit_tuples
-from src.pyIsoFit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
+from pyIsoFit.core.model_fit_def import get_fit_tuples
+from pyIsoFit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
 
 
 def generic_fit(model, weights, y, guess, temps, cond, meth, cust_bounds, fit_report, henry_constants, henry_off):
