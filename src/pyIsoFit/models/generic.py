@@ -50,3 +50,6 @@ def generic_fit(model, weights, y, guess, temps, cond, meth, cust_bounds, fit_re
         del results, pars
 
     return params, values_dict
+
+
+

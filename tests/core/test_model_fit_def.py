@@ -40,9 +40,13 @@ class TestModelFitDef(unittest.TestCase):
         henry_off = False
         q_fix = 7.92
 
-        result1 = (('q', 7.92, True, 0, None), ('delta', 1234, False), ('b', None, None, None, None, 'delta/q'),
-                   ('q', 7.92, True, 7.92, 7.921), ('delta', 172, False), ('b', None, None, None, None, 'delta/q'),
-                   ('q', 7.92, True, 7.92, 7.921), ('delta', 11, False), ('b', None, None, None, None, 'delta/q'))
+        result1 = (('q', 7.92, True, 0, None), ('delta', 1234, False), ('b', None, None, None, None, 'delta/q')), \
+                  (('q', 7.92, True, 7.92, 7.921), ('delta', 172, False), ('b', None, None, None, None, 'delta/q')),\
+                  (('q', 7.92, True, 7.92, 7.921), ('delta', 11, False), ('b', None, None, None, None, 'delta/q'))
 
-
-        assert False
+        for i, tuple_set in enumerate(result1):
+            result1_test = get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, henry_off, q_fix)
+            for j, tup in enumerate(tuple_set):
+                tup_test = result1_test[j]
+                for k, item in enumerate(tup):
+                    self.assertEqual(item, tup_test[k])

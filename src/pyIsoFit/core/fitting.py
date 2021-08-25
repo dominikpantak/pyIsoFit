@@ -281,8 +281,8 @@ class IsothermFit:
             # Allocating x and y axis co-ordinates to class variables
             # Produces a list of lists - outer corresponds to component, inner corresponds to temperatures
             self.params = results_dict
-            for i in range(len(self.compname)):
-                x_i, y_i = df_dict[self.compname[i]]
+            for comp in self.compname:
+                x_i, y_i = df_dict[comp]
                 self.x.append(x_i)
                 self.y.append(y_i)
 
@@ -359,8 +359,7 @@ class IsothermFit:
         final_results_dict, c_list = get_sorted_results(values_dict, self.model, self.temps)
         logger.info('Results sorted successfully')
 
-        # Find the r squared and mean squared error (mse) values
-        # r_sq = [r2(self.x[i], self.y[i], _MODEL_FUNCTIONS[self.model], c_list[i]) for i in range(len(self.x))]
+        # Find the mean squared error (mse) values
         se = [mse(self.x[i], self.y[i], _MODEL_FUNCTIONS[self.model], c_list[i]) for i in range(len(self.x))]
         logger.info('Mean squared error calculated successfully')
 
