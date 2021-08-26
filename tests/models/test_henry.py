@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
+import unittest
 from src.pyIsoFit.models.henry import henry_approx
 
-class HenryTest:
+class HenryTest(unittest.TestCase):
     def test_henry_approx(self):
 
         df1 = pd.read_csv('../Datasets for testing/Computational Data (EPFL) CO2.csv')

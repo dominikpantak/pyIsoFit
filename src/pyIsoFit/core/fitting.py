@@ -316,13 +316,13 @@ class IsothermFit:
             return None
 
         # ! Dictionary of parameters as a starting point for data fitting
-        guess = get_guess_params(self.model, self.df, self.key_uptakes, self.key_pressures)
-        logger.info('Guess values successfully obtained')
-
-        # Override defaults if user provides param_guess dictionary
-        if guess is not None:
+        if guess is None:
+            guess = get_guess_params(self.model, self.df, self.key_uptakes, self.key_pressures)
+            logger.info('Guess values successfully obtained')
+        else:
+        # Override defaults if user provides guess dictionary
             for param, guess_val in guess.items():
-                if param not in list(guess.keys()):
+                if param not in _MODEL_PARAM_LISTS[self.model]:
                     raise ParameterError("%s is not a valid parameter"
                                          " in the %s model." % (param, self.model))
                 guess[param] = guess_val
