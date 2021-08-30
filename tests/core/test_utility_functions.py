@@ -175,16 +175,6 @@ class TestUtilityFunctions(unittest.TestCase):
 
         self.assertEqual(test2, result_test1)
 
-    # def test_save_func(self):
-    #     directory = '../testing library/'
-    #     fit_name = 'test_save_func'
-    #     filetype = '.csv'
-    #     d = {'col1': [1, 2], 'col2': [3, 4]}
-    #     df = pd.DataFrame.from_dict(d)
-    #     save_func(directory, fit_name, filetype, df)
-    #     df_test = pd.read_csv('../testing library/test_save_func.csv')
-    #
-    #     pd.testing.assert_frame_equal(df, df_test)
 
 
 

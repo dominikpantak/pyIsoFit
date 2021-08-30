@@ -109,9 +109,9 @@ class TestFitting(unittest.TestCase):
             **params
         )
 
-        # df is a list but dsl is not the model
+        # testing guess values override
         with pytest.raises(pfEx.ParameterError):
             test_fit1.fit(
-                guess={'sausage': [0.2]}
+                guess={'kielbasa': ['sausage']}
             )
 
