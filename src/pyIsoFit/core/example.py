@@ -44,16 +44,16 @@ import pandas as pd
 # # langmuir.plot_emod(yfracs=[0.15, 0.85], logplot=False)
 
 
-df1 = pd.read_csv('../../../tests/Datasets for testing/Lewatit CO2.csv')
-compname = 'CO2'
-temps = [25, 50, 75, 100]
-key_pressures = ['p1', 'p2', 'p3', 'p4']
-key_uptakes = ['q1', 'q2', 'q3', 'q4']
-
-test = IsothermFit(df1, temps, key_pressures, key_uptakes, "langmuir", compname)
-test.fit(hen_tol=0.999, show_hen=True, cond=True)
-# test.save(directory="C:\\Users\\domin\\PycharmProjects\\pyIsoFit-master\\fittingresults\\")
-test.plot()
+# df1 = pd.read_csv('../../../tests/Datasets for testing/Lewatit CO2.csv')
+# compname = 'CO2'
+# temps = [25, 50, 75, 100]
+# key_pressures = ['p1', 'p2', 'p3', 'p4']
+# key_uptakes = ['q1', 'q2', 'q3', 'q4']
+#
+# test = IsothermFit(df1, temps, key_pressures, key_uptakes, "langmuir", compname)
+# test.fit(hen_tol=0.999, show_hen=True, cond=True)
+# # test.save(directory="C:\\Users\\domin\\PycharmProjects\\pyIsoFit-master\\fittingresults\\")
+# test.plot()
 
 # df1 = pd.read_csv('../../../tests/Datasets for testing/CMS.csv')
 # compname = 'H2O'

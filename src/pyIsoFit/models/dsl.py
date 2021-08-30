@@ -127,7 +127,7 @@ def dsl_fit(df_list: list,
                 pars = Parameters()
                 pars.add('q', value=qtot, min=qtot, max=qtot + 0.001)
                 if henry_off:
-                    pars.add('b2', value=guess['b2'][i])
+                    pars.add('b', value=guess['b1'][i])
                 else:
                     pars.add('delta', value=henry_constants[i], vary=False)
                     pars.add('b', expr='delta/q')
