@@ -124,65 +124,60 @@ class TestModelFitDef(unittest.TestCase):
 
     def test_get_fit_tuples(self):
         guess1 = {'b': [155.7, 23.8, 1.9],
-                 'q': [7.92, 7.25, 5.75]}
+                 'q': [7, 7.25, 5.75]}
 
-        kwargs = {
+        std_data = {
             'temps': [10, 40, 100],
             'cust_bounds': None,
             'henry_constants': [1234, 172, 11],
-            'q_fix': 7.92
+            'q_fix': 7
         }
 
-        result1 = (('q', 7.92, True, 0, None), ('delta', 1234, False), ('b', None, None, None, None, 'delta/q')), \
-                  (('q', 7.92, True, 7.92, 7.921), ('delta', 172, False), ('b', None, None, None, None, 'delta/q')),\
-                  (('q', 7.92, True, 7.92, 7.921), ('delta', 11, False), ('b', None, None, None, None, 'delta/q'))
+        def assert_tuples(left, **kwargs):
+            for i, tuple_set in enumerate(left):
+                test = get_fit_tuples(i=i, **kwargs, **std_data)
 
-        for i, tuple_set in enumerate(result1):
-            result1_test = get_fit_tuples(model="langmuir",
-                                          guess=guess1,
-                                          i=i,
-                                          cond=True,
-                                          henry_off=False,
-                                          **kwargs)
+                for j, tup in enumerate(tuple_set):
+                    tup_test = test[j]
+                    for k, item in enumerate(tup):
+                        self.assertEqual(item, tup_test[k])
 
-            for j, tup in enumerate(tuple_set):
-                tup_test = result1_test[j]
-                for k, item in enumerate(tup):
-                    self.assertEqual(item, tup_test[k])
 
-        result2 = (('q', 7.92, True, 0, None), ('b', 155.7, True, 0, None)), \
-                  (('q', 7.92, True, 7.92, 7.921), ('b', 23.8, True, 0, None)), \
-                  (('q', 7.92, True, 7.92, 7.921), ('b', 1.9, True, 0, None))
+        result1 = (('q', 7, True, 0, None), ('delta', 1234, False), ('b', None, None, None, None, 'delta/q')), \
+                  (('q', 7, True, 7, 7.001), ('delta', 172, False), ('b', None, None, None, None, 'delta/q')),\
+                  (('q', 7, True, 7, 7.001), ('delta', 11, False), ('b', None, None, None, None, 'delta/q'))
 
-        for i, tuple_set in enumerate(result2):
-            result1_test = get_fit_tuples(model="langmuir",
-                                          guess=guess1,
-                                          i=i,
-                                          cond=True,
-                                          henry_off=True,
-                                          **kwargs)
+        test1_kwargs = {
+            'model': "langmuir",
+            'guess': guess1,
+            'cond': True,
+            'henry_off': False}
 
-            for j, tup in enumerate(tuple_set):
-                tup_test = result1_test[j]
-                for k, item in enumerate(tup):
-                    self.assertEqual(item, tup_test[k])
+        assert_tuples(result1, **test1_kwargs)
 
-        result3 = (('q', 7.92, True, 0, None), ('b', 155.7, True, 0, None)), \
+        result2 = (('q', 7, True, 0, None), ('b', 155.7, True, 0, None)), \
+                  (('q', 7, True, 7, 7.001), ('b', 23.8, True, 0, None)), \
+                  (('q', 7, True, 7, 7.001), ('b', 1.9, True, 0, None))
+
+        test2_kwargs = {
+            'model': "langmuir",
+            'guess': guess1,
+            'cond': True,
+            'henry_off': True}
+
+        assert_tuples(result2, **test2_kwargs)
+
+        result3 = (('q', 7, True, 0, None), ('b', 155.7, True, 0, None)), \
                   (('q', 7.25, True, 0, None), ('b', 23.8, True, 0, None)), \
                   (('q', 5.75, True, 0, None), ('b', 1.9, True, 0, None))
 
-        for i, tuple_set in enumerate(result3):
-            result1_test = get_fit_tuples(model="langmuir",
-                                          guess=guess1,
-                                          i=i,
-                                          cond=False,
-                                          henry_off=False,
-                                          **kwargs)
+        test3_kwargs = {
+            'model': "langmuir",
+            'guess': guess1,
+            'cond': False,
+            'henry_off': False}
 
-            for j, tup in enumerate(tuple_set):
-                tup_test = result1_test[j]
-                for k, item in enumerate(tup):
-                    self.assertEqual(item, tup_test[k])
+        assert_tuples(result3, **test3_kwargs)
 
         guess2 = {
              'q1': [3, 2],
@@ -195,16 +190,12 @@ class TestModelFitDef(unittest.TestCase):
                   (('q1', 2, True, 0, None), ('q2', 2, True, 0, None), ('b1', 32, True, 0, None),\
                    ('b2', 32, True, 0, None))
 
-        for i, tuple_set in enumerate(result4):
-            result1_test = get_fit_tuples(model="dsl",
-                                          guess=guess2,
-                                          i=i,
-                                          **kwargs)
+        test4_kwargs = {
+            'model': "dsl",
+            'guess': guess2
+        }
 
-            for j, tup in enumerate(tuple_set):
-                tup_test = result1_test[j]
-                for k, item in enumerate(tup):
-                    self.assertEqual(item, tup_test[k])
+        assert_tuples(result4, **test4_kwargs)
 
         guess3 = {
             'b0': [155, 140],
@@ -212,18 +203,189 @@ class TestModelFitDef(unittest.TestCase):
             'h': [-5000, -5000]
         }
 
-        result5 = (('t', 10, False), ('q', 7, True, 0, None), ('h', -5000, True, 0, None), ('b0', 155, True, 0, None)),\
-                  (('t', 40, False), ('q', 7, True, 0, None), ('h', -5000, True, 0, None), ('b0', 140, True, 0, None))
+        result5 = (('t', 10, False), ('q', 7, True, 0, None), ('h', -5000, True, None, None), ('b0', 155, True, 0, None)),\
+                  (('t', 40, False), ('q', 7, True, 7, 7.001), ('h', -5000, True, None, None), ('b0', 140, True, 0, None))
 
-        for i, tuple_set in enumerate(result5):
-            result1_test = get_fit_tuples(model="langmuir td",
-                                          guess=guess3,
-                                          cond=True,
-                                          i=i,
-                                          **kwargs)
 
-            for j, tup in enumerate(tuple_set):
-                tup_test = result1_test[j]
-                for k, item in enumerate(tup):
-                    self.assertEqual(item, tup_test[k])
+        test5_kwargs = {
+            'model': "langmuir td",
+            'guess': guess3,
+            'cond': True,
+            'henry_off': False}
+
+        assert_tuples(result5, **test5_kwargs)
+
+        result6 = (('t', 10, False), ('q', 7, True, 0, None), ('h', -5000, True, None, None), ('b0', 155, True, 0, None)),\
+                  (('t', 40, False), ('q', 6, True, 0, None), ('h', -5000, True, None, None), ('b0', 140, True, 0, None))
+
+        test6_kwargs = {
+            'model': "langmuir td",
+            'guess': guess3,
+            'cond': False,
+            'henry_off': False}
+
+        assert_tuples(result6, **test6_kwargs)
+
+        guess4 = {
+            'n': [15, 14],
+            'ka': [7, 6],
+            'ca': [1, 2]
+        }
+
+        result7 = (('n', 15, True, 0, None), ('ka', 7, True, 0, None), ('ca', 1, True, 0, None)), \
+                  (('n', 14, True, 0, None), ('ka', 6, True, 0, None), ('ca', 2, True, 0, None))
+
+        test7_kwargs = {
+            'model': "gab",
+            'guess': guess4}
+
+        assert_tuples(result7, **test7_kwargs)
+
+        guess5 = {
+            'n0': [7, 6],
+            'n1': [100, 120],
+            'a': [1, 2],
+            'c': [3, 4]
+        }
+
+        result8 = (('n0', 7, True, 0, None), ('n1', 100, True, 0, None), ('a', 1, True, 0, None),
+                   ('c', 3, True, 0, None)), \
+                  (('n0', 6, True, 0, None), ('n1', 120, True, 0, None), ('a', 2, True, 0, None), \
+                   ('c', 4, True, 0, None))
+
+        test8_kwargs = {
+            'model': "mdr",
+            'guess': guess5,
+            'cond': False,
+            'henry_off': False}
+
+        assert_tuples(result8, **test8_kwargs)
+
+        result9 = (('n0', 7, True, 0, None), ('n1', 100, True, 0, None), ('a', 1, True, 0, None),
+                   ('c', 3, True, 0, None)), \
+                  (('n0', 7, True, 7, 7.001), ('n1', 120, True, 0, None), ('a', 2, True, 0, None), \
+                   ('c', 4, True, 0, None))
+
+        test9_kwargs = {
+            'model': "mdr",
+            'guess': guess5,
+            'cond': True,
+            'henry_off': True}
+
+        assert_tuples(result9, **test9_kwargs)
+
+        result10 = (('n0', 7, True, 0, None),('delta', 1234, False), ('n1', None, None, None, None, 'delta/n0'), ('a', 1, True, 0, None),
+                   ('c', 3, True, 0, None)), \
+                  (('n0', 7, True, 7, 7.001),('delta', 172, False), ('n1', None, None, None, None, 'delta/n0'), ('a', 2, True, 0, None), \
+                   ('c', 4, True, 0, None))
+
+        test10_kwargs = {
+            'model': "mdr",
+            'guess': guess5,
+            'cond': True,
+            'henry_off': False}
+
+        assert_tuples(result10, **test10_kwargs)
+
+        guess6 = {
+            'q': [5, 4],
+            'b': [100, 90],
+            'n': [1, 0.9]
+        }
+
+        result11 = (('q', 5, True, 0, None), ('b', 100, True, 0, None), ('n', 1, True, 0, None)), \
+                  (('q', 4, True, 0, None), ('b', 90, True, 0, None), ('n', 0.9, True, 0, None))
+
+        test11_kwargs = {
+            'model': "sips",
+            'guess': guess6
+        }
+
+        assert_tuples(result11, **test11_kwargs)
+
+        guess7 = {
+            'q': [5, 4],
+            'b': [100, 90],
+            't': [1, 0.9]
+        }
+
+        result12 = (('q', 5, True, 0, None), ('b', 100, True, 0, None), ('t', 1, True, 0, None)), \
+                   (('q', 4, True, 0, None), ('b', 90, True, 0, None), ('t', 0.9, True, 0, None))
+
+        test12_kwargs = {
+            'model': "toth",
+            'guess': guess7
+        }
+
+        assert_tuples(result12, **test12_kwargs)
+
+        guess8 = {
+            'c': [0.1, 1],
+            'n': [10, 20],
+            'g': [99, 100],
+            'q': [6, 5]
+        }
+
+        result13 = (('c', 0.1, True, 0, None), ('n', 10, True, 0, None), ('g', 99, True, 0, None),
+                   ('q', 6, True, 0, None)), \
+                  (('c', 1, True, 0, None), ('n', 20, True, 0, None), ('g', 100, True, 0, None), \
+                   ('q', 5, True, 0, None))
+
+        test13_kwargs = {
+            'model': "bddt",
+            'guess': guess8
+        }
+
+        assert_tuples(result13, **test13_kwargs)
+
+        result14 = (('c', 0.1, True, 0, 1), ('n', 10, True, 0, None), ('g', 99, True, 0, None),
+                   ('q', 6, True, 0, None)), \
+                  (('c', 1, True, 0, 1), ('n', 20, True, 0, None), ('g', 100, True, 0, None), \
+                   ('q', 5, True, 0, None))
+
+        test14_kwargs = {
+            'model': "bddt",
+            'guess': guess8,
+            'cond': True
+        }
+
+        assert_tuples(result14, **test14_kwargs)
+
+        guess9 = {
+            'ns': [1, 2],
+            'kf': [3, 4],
+            'nu': [5, 6],
+            'ku': [7, 8],
+            'm': [9, 10]
+        }
+
+        result15 = (('ns', 1, True, 0, None), ('kf', 3, True, 0, None), ('nu', 5, True, 0, None),
+                    ('ku', 7, True, 0, None), ('m', 9, True, 0, None)), \
+                   (('ns', 2, True, 0, None), ('kf', 4, True, 0, None), ('nu', 6, True, 0, None),
+                    ('ku', 8, True, 0, None), ('m', 10, True, 0, None))
+
+        test15_kwargs = {
+            'model': "dodo",
+            'guess': guess9
+        }
+
+        assert_tuples(result15, **test15_kwargs)
+
+        guess10 = {
+            'n': [10, 11],
+            'c': [12, 13]
+        }
+
+        result16 = (('n', 10, True, 0, None), ('c', 12, True, 0, None)), \
+                   (('n', 11, True, 0, None), ('c', 13, True, 0, None))
+
+        test16_kwargs = {
+            'model': "bet",
+            'guess': guess10
+        }
+
+        assert_tuples(result16, **test16_kwargs)
+
+
+
 
