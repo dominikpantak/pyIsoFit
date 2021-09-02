@@ -6,47 +6,224 @@ import unittest
 class TestModelFitDef(unittest.TestCase):
     def test_get_guess_params(self):
         df1 = pd.read_csv('../Datasets for testing/Computational Data (EPFL) CO2.csv')
-        key_uptakes = ['Uptake (mmol/g)_13X_10 (°C)', 'Uptake (mmol/g)_13X_40 (°C)', 'Uptake (mmol/g)_13X_100 (°C)']
-        key_pressures = ['Pressure (bar)', 'Pressure (bar)', 'Pressure (bar)']
+        key_uptakes = ['Uptake (mmol/g)_13X_10 (°C)']
+        key_pressures = ['Pressure (bar)']
 
         result1 = get_guess_params("langmuir", df1, key_uptakes, key_pressures)
 
-        guess_result_test1 = {'b': [155.72513521595482, 23.867342457899817, 1.964459201401032],
-                              'q': [7.926677561000001, 7.2472832828, 5.755511305500001]}
+        guess_result_test1 = {'b': [155.72513521595482],
+                              'q': [7.926677561000001]}
 
         for key in guess_result_test1:
             np.testing.assert_array_almost_equal(guess_result_test1[key], result1[key])
 
         guess_result_test2 = {
-            'b1': [62.29005408638193, 9.546936983159927, 0.7857836805604128],
-             'b2': [93.4350811295729, 14.32040547473989, 1.1786755208406192],
-             'q1': [3.9633387805000004, 3.6236416414, 2.8777556527500003],
-             'q2': [3.9633387805000004, 3.6236416414, 2.8777556527500003]}
+             'b1': [62.29005408638193],
+             'b2': [93.4350811295729],
+             'q1': [3.9633387805000004],
+             'q2': [3.9633387805000004]}
 
         result2 = get_guess_params("dsl", df1, key_uptakes, key_pressures)
+        result2_d = get_guess_params("dsl nc", df1, key_uptakes, key_pressures)
 
         for key in guess_result_test2:
             np.testing.assert_array_almost_equal(guess_result_test2[key], result2[key])
+            np.testing.assert_array_almost_equal(guess_result_test2[key], result2_d[key])
+
+        guess_result_test3 = {
+            'b0': [155.72513521595482],
+            'q': [7.926677561000001],
+            'h': [-5000]
+        }
+
+        result3 = get_guess_params("langmuir td", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test3:
+            np.testing.assert_array_almost_equal(guess_result_test3[key], result3[key])
+
+        guess_result_test4 = {
+            'n': [1.585335512],
+            'ka': [1],
+            'ca': [0.45]
+        }
+
+        result4 = get_guess_params("gab", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test4:
+            np.testing.assert_array_almost_equal(guess_result_test4[key], result4[key])
+
+        guess_result_test5 = {
+            'n0': [7.926677561000001],
+            'n1': [155.72513521595482],
+            'a': [15.57251352],
+            'c': [1557.251352]
+        }
+
+        result5 = get_guess_params("mdr", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test5:
+            np.testing.assert_array_almost_equal(guess_result_test5[key], result5[key])
+
+        guess_result_test6 = {
+            'b': [155.72513521595482],
+            'q': [7.926677561000001],
+            'n': [1]
+        }
+
+        result6 = get_guess_params("sips", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test6:
+            np.testing.assert_array_almost_equal(guess_result_test6[key], result6[key])
+
+        guess_result_test7 = {
+            'b': [155.72513521595482],
+            'q': [7.926677561000001],
+            't': [0.5]
+        }
+
+        result7 = get_guess_params("toth", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test7:
+            np.testing.assert_array_almost_equal(guess_result_test7[key], result7[key])
+
+        guess_result_test8 = {
+            "c": [155.72513521595482],
+            "n": [10],
+            "g": [100],
+            "q": [3.963338781]
+        }
+
+        result8 = get_guess_params("bddt", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test8:
+            np.testing.assert_array_almost_equal(guess_result_test8[key], result8[key])
+
+        guess_result_test9 = {
+            "ns": [7.926677561000001],
+            "kf": [155.72513521595482],
+            "nu": [79.26677561000001],
+            "ku": [155.72513521595482],
+            "m": [5]
+        }
+
+        result9 = get_guess_params("dodo", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test9:
+            np.testing.assert_array_almost_equal(guess_result_test9[key], result9[key])
+
+        guess_result_test10 = {
+            'c': [155.72513521595482],
+            'n': [7.926677561000001]
+        }
+
+        result10 = get_guess_params("bet", df1, key_uptakes, key_pressures)
+
+        for key in guess_result_test10:
+            np.testing.assert_array_almost_equal(guess_result_test10[key], result10[key])
 
 
     def test_get_fit_tuples(self):
-        model = "langmuir"
-        guess = {'b': [155.7, 23.8, 1.9],
+        guess1 = {'b': [155.7, 23.8, 1.9],
                  'q': [7.92, 7.25, 5.75]}
-        temps = [10, 40, 100]
-        cond = True
-        cust_bounds = None
-        henry_constants = [1234, 172, 11]
-        henry_off = False
-        q_fix = 7.92
+
+        kwargs = {
+            'temps': [10, 40, 100],
+            'cust_bounds': None,
+            'henry_constants': [1234, 172, 11],
+            'q_fix': 7.92
+        }
 
         result1 = (('q', 7.92, True, 0, None), ('delta', 1234, False), ('b', None, None, None, None, 'delta/q')), \
                   (('q', 7.92, True, 7.92, 7.921), ('delta', 172, False), ('b', None, None, None, None, 'delta/q')),\
                   (('q', 7.92, True, 7.92, 7.921), ('delta', 11, False), ('b', None, None, None, None, 'delta/q'))
 
         for i, tuple_set in enumerate(result1):
-            result1_test = get_fit_tuples(model, guess, temps, i, cond, cust_bounds, henry_constants, henry_off, q_fix)
+            result1_test = get_fit_tuples(model="langmuir",
+                                          guess=guess1,
+                                          i=i,
+                                          cond=True,
+                                          henry_off=False,
+                                          **kwargs)
+
             for j, tup in enumerate(tuple_set):
                 tup_test = result1_test[j]
                 for k, item in enumerate(tup):
                     self.assertEqual(item, tup_test[k])
+
+        result2 = (('q', 7.92, True, 0, None), ('b', 155.7, True, 0, None)), \
+                  (('q', 7.92, True, 7.92, 7.921), ('b', 23.8, True, 0, None)), \
+                  (('q', 7.92, True, 7.92, 7.921), ('b', 1.9, True, 0, None))
+
+        for i, tuple_set in enumerate(result2):
+            result1_test = get_fit_tuples(model="langmuir",
+                                          guess=guess1,
+                                          i=i,
+                                          cond=True,
+                                          henry_off=True,
+                                          **kwargs)
+
+            for j, tup in enumerate(tuple_set):
+                tup_test = result1_test[j]
+                for k, item in enumerate(tup):
+                    self.assertEqual(item, tup_test[k])
+
+        result3 = (('q', 7.92, True, 0, None), ('b', 155.7, True, 0, None)), \
+                  (('q', 7.25, True, 0, None), ('b', 23.8, True, 0, None)), \
+                  (('q', 5.75, True, 0, None), ('b', 1.9, True, 0, None))
+
+        for i, tuple_set in enumerate(result3):
+            result1_test = get_fit_tuples(model="langmuir",
+                                          guess=guess1,
+                                          i=i,
+                                          cond=False,
+                                          henry_off=False,
+                                          **kwargs)
+
+            for j, tup in enumerate(tuple_set):
+                tup_test = result1_test[j]
+                for k, item in enumerate(tup):
+                    self.assertEqual(item, tup_test[k])
+
+        guess2 = {
+             'q1': [3, 2],
+             'q2': [3, 2],
+            'b1': [62, 32],
+            'b2': [93, 32]
+        }
+
+        result4 = (('q1', 3, True, 0, None), ('q2', 3, True, 0, None), ('b1', 62, True, 0, None), ('b2', 93, True, 0, None)), \
+                  (('q1', 2, True, 0, None), ('q2', 2, True, 0, None), ('b1', 32, True, 0, None),\
+                   ('b2', 32, True, 0, None))
+
+        for i, tuple_set in enumerate(result4):
+            result1_test = get_fit_tuples(model="dsl",
+                                          guess=guess2,
+                                          i=i,
+                                          **kwargs)
+
+            for j, tup in enumerate(tuple_set):
+                tup_test = result1_test[j]
+                for k, item in enumerate(tup):
+                    self.assertEqual(item, tup_test[k])
+
+        guess3 = {
+            'b0': [155, 140],
+            'q': [7, 6],
+            'h': [-5000, -5000]
+        }
+
+        result5 = (('t', 10, False), ('q', 7, True, 0, None), ('h', -5000, True, 0, None), ('b0', 155, True, 0, None)),\
+                  (('t', 40, False), ('q', 7, True, 0, None), ('h', -5000, True, 0, None), ('b0', 140, True, 0, None))
+
+        for i, tuple_set in enumerate(result5):
+            result1_test = get_fit_tuples(model="langmuir td",
+                                          guess=guess3,
+                                          cond=True,
+                                          i=i,
+                                          **kwargs)
+
+            for j, tup in enumerate(tuple_set):
+                tup_test = result1_test[j]
+                for k, item in enumerate(tup):
+                    self.assertEqual(item, tup_test[k])
+

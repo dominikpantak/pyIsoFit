@@ -27,6 +27,7 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
     henry_lim = henry_approx(df, key_pressures, key_uptakes, False)[0]
     langmuir_b = [kh / qsat for (kh, qsat) in zip(henry_lim, saturation_loading)]
     h_guess = [-5000 for _ in key_pressures]
+    gab_q = []
 
     if "langmuir" in model and model != "langmuir td":
         return {
@@ -52,8 +53,8 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
     if model == "gab":
         return {
             "n": [0.2 * q for q in saturation_loading],
-            "ka": [1.1 * b for b in langmuir_b],
-            "ca": [0.1 * b for b in langmuir_b]
+            "ka": [1 for _ in langmuir_b],
+            "ca": [0.45 for _ in langmuir_b]
         }
 
     if model == "mdr":
@@ -95,15 +96,8 @@ def get_guess_params(model, df, key_uptakes, key_pressures):
             "n": saturation_loading,
             "c": langmuir_b,
         }
-    if model == "toth td":
-        return {
-            "q": saturation_loading,
-            "b0": [b * 0.1 for b in langmuir_b],
-            "t": [0.5 for _ in saturation_loading],
-            "h": h_guess
-        }
 
-def get_fit_tuples(model, guess, temps, i, cond, cust_bounds=None, henry_constants=None, henry_off=False, q_fix=None):
+def get_fit_tuples(model, guess, temps, i, cond=False, cust_bounds=None, henry_constants=None, henry_off=False, q_fix=None):
     """
     Definitions of the fitting procedures for each model in the form of tuples.
 

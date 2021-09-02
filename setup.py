@@ -11,7 +11,7 @@ with open('requirements.txt') as f:
 
 setuptools.setup(
     name="pyIsoFit",                     # This is the name of the package
-    version="0.0.3",                        # The initial release version
+    version="0.0.4",                        # The initial release version
     author="Dominik Pantak",                     # Full name of the author
     description="Package for The Fitting of Adsorption Isotherms and Prediction of Multi-component Isotherms",
     long_description=long_description,      # Long description read from the the readme file
