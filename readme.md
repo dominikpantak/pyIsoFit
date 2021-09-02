@@ -23,5 +23,5 @@ pip install pyIsoFit
 ```
 
 ## Usage
-For a tutorial on how to use the package with examples and use cases please refer to the [pyIsoFit_demo.py](https://github.com/dominikpantak/pyIsoFit/blob/main/demo/pyIsofit_demo.ipynb) file.
+For a tutorial on how to use the package with examples and use cases please refer to the [pyIsoFit_demo.ipynb](https://github.com/dominikpantak/pyIsoFit/blob/main/demo/pyIsofit_demo.ipynb) file.
 
