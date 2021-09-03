@@ -15,6 +15,8 @@ from pyIsoFit.core.model_equations import mse, henry
 from pyIsoFit.core.exceptions import ParameterError, SaveError
 import logging
 from IPython.display import display
+import sys
+import os
 
 from pyIsoFit.models.henry import henry_approx
 
@@ -266,15 +268,39 @@ class IsothermFit:
             if type(guess) is not list and guess is not None:
                 guess = [guess]
 
+            if type(hen_tol) is not list:
+                hen_tol = [hen_tol for _ in self.compname]
+
+
             # Calling the DSL fitting function - see DSL function docstring for more info
             try:
                 dsl_result = dsl_fit(self.df, self.key_pressures, self.key_uptakes,
                                      self.temps, self.compname, meth, guess, hen_tol, show_hen, henry_off, dsl_comp_a)
             except ValueError:
+                logger.critical('******************************************************************************\n\n'
+                                'The model function generated NaN values and the fit aborted!'
+                                 'Please check your model function and/or set boundaries on parameters where applicable\n'
+                                 'In these cases you can try:\n\n'
+                                 '* Changing lmfit fitting method (default is "leastsq") to "tnc". This is done by\n'
+                                 ' passing meth="tnc" as a kwarg within .fit()\n'
+                                 '* Inspecting henry regime estimation by passing show_hen=True as a kwarg to check the'
+                                 '  estimate is not off.\n'
+                                 '* Because this is often an issue with the henry regime constraint, changing the henry \n'
+                                '   regime tolerance by passing hen_tol as a kwarg in the following\n'
+                                 '  way may work:\n'
+                                 '    - A list of single floats representing the tolerance of the R^2 value which pyIsoFit uses to\n'
+                                 '      calculate the henry regime for each component. The values must be in the same order\n'
+                                '       as the component names passed i.e hen_tol=[0.98, 0.99] corresponding to ["CO2", "N2"] \n'
+                                 '    - A list of lists of floats representing the upper henry regime for each component\'s\n '
+                                '       datasets which you are passing i.e hen_tol=[[0.1, 0.2, 0.3], [0.1, 0.5, 0.3]] for ["CO2", "N2"] \n\n'
+                                'Please restart the fitting after you have made these changes\n\n'
+                                'If none of these solutions work, it is possible that this particular dataset cannot be '
+                                'fit to the DSL isotherm with the constraints you have chosen')
+                return None
+
+
                 # Often the fitting algorithm is the source of the error
-                logger.critical('The model function generated NaN values and the fit aborted!'
-                                'Please check your model function and/or set boundaries on parameters where applicable'
-                                'In these cases try changing lmfit fitting method (default is "leastsq") to "tnc"')
+
 
             df_dict, results_dict, df_res_dict, params_dict = dsl_result
 
@@ -394,6 +420,7 @@ class IsothermFit:
             (x, y)
 
         """
+
         np.linspace(0, 10, 301)
 
         fit_label = "{temps} K Fit"

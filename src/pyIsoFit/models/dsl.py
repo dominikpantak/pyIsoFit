@@ -296,7 +296,7 @@ def dsl_fit(df_list: list,
         guess = [get_guess_params("dsl", df_list[i], key_uptakes, key_pressures) for i in range(len(df_list))]
 
     # Creating a list of henry constants for each component
-    henry_const_lst = [henry_approx(df_list[i], key_pressures, key_uptakes, show_hen, hentol, compnames[i])[0] for i in
+    henry_const_lst = [henry_approx(df_list[i], key_pressures, key_uptakes, show_hen, hentol[i], compnames[i])[0] for i in
                        range(len(df_list))]
 
     # Checking the most adsorbed component - calling function step 1 for all components and checking which gives

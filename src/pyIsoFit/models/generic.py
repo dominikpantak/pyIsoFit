@@ -6,7 +6,17 @@ from pyIsoFit.core.model_fit_def import get_fit_tuples
 from pyIsoFit.core.model_dicts import _MODEL_FUNCTIONS, _MODEL_PARAM_LISTS
 
 
-def generic_fit(model, weights, y, guess, temps, cond, meth, cust_bounds, fit_report, henry_constants, henry_off):
+def generic_fit(model,
+                weights,
+                y,
+                guess,
+                temps,
+                cond=False,
+                meth='leastsq',
+                cust_bounds=None,
+                fit_report=False,
+                henry_constants=None,
+                henry_off=False):
     """
     Fits any chosen isotherm model to experimental data and returns the results.
 
@@ -50,6 +60,4 @@ def generic_fit(model, weights, y, guess, temps, cond, meth, cust_bounds, fit_re
         del results, pars
 
     return params, values_dict
-
-
 
